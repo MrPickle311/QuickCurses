@@ -1,0 +1,9 @@
+/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles/edit_cache.dir
+/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles/rebuild_cache.dir
+/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles/QuickCurses.dir
+/home/damiano/CLionProjects/QuickCurses/build/src/CMakeFiles/rebuild_cache.dir
+/home/damiano/CLionProjects/QuickCurses/build/src/CMakeFiles/edit_cache.dir
+/home/damiano/CLionProjects/QuickCurses/build/src/CMakeFiles/ALL_LIBRARIES.dir
+/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/rebuild_cache.dir
+/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/edit_cache.dir
+/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/Core.dir

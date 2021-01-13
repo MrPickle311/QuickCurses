@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/damiano/CLionProjects/QuickCurses/include/Core/Engine_base.hpp
+ncurses.h
+-
+
+/home/damiano/CLionProjects/QuickCurses/include/Core/EventLoop_base.hpp
+
+/home/damiano/CLionProjects/QuickCurses/include/Core/Object_base.hpp
+
+/home/damiano/CLionProjects/QuickCurses/src/Core/Engine_base.cpp
+../../include/Core/Engine_base.hpp
+/home/damiano/CLionProjects/QuickCurses/include/Core/Engine_base.hpp
+
+/home/damiano/CLionProjects/QuickCurses/src/Core/EventLoop_base.cpp
+../../include/Core/EventLoop_base.hpp
+/home/damiano/CLionProjects/QuickCurses/include/Core/EventLoop_base.hpp
+
+/home/damiano/CLionProjects/QuickCurses/src/Core/Object_base.cpp
+../../include/Core/Object_base.hpp
+/home/damiano/CLionProjects/QuickCurses/include/Core/Object_base.hpp
+

@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/damiano/CLionProjects/QuickCurses/include/Core/Engine_base.hpp
+ncurses.h
+-
+
+/home/damiano/CLionProjects/QuickCurses/main.cpp
+iostream
+-
+vector
+-
+ncurses.h
+-
+include/Core/Engine_base.hpp
+/home/damiano/CLionProjects/QuickCurses/include/Core/Engine_base.hpp
+

@@ -1,0 +1,16 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/damiano/CLionProjects/QuickCurses/include/Core/Engine/test.hpp
+
+/home/damiano/CLionProjects/QuickCurses/src/Core/Engine/test.cpp
+../../../include/Core/Engine/test.hpp
+/home/damiano/CLionProjects/QuickCurses/include/Core/Engine/test.hpp
+iostream
+-
+

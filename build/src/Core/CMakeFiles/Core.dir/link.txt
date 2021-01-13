@@ -1,0 +1,2 @@
+/usr/bin/ar qc libCore.a CMakeFiles/Core.dir/Engine_base.cpp.o CMakeFiles/Core.dir/Object_base.cpp.o CMakeFiles/Core.dir/EventLoop_base.cpp.o
+/usr/bin/ranlib libCore.a
