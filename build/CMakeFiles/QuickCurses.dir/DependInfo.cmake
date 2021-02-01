@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/damiano/CLionProjects/QuickCurses/main.cpp" "/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles/QuickCurses.dir/main.cpp.o"
+  "/home/damiano/QuickCurses/main.cpp" "/home/damiano/QuickCurses/build/CMakeFiles/QuickCurses.dir/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
@@ -14,8 +14,8 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/home/damiano/CLionProjects/QuickCurses/build/src/CMakeFiles/ALL_LIBRARIES.dir/DependInfo.cmake"
-  "/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/Core.dir/DependInfo.cmake"
+  "/home/damiano/QuickCurses/build/src/CMakeFiles/ALL_LIBRARIES.dir/DependInfo.cmake"
+  "/home/damiano/QuickCurses/build/src/Core/CMakeFiles/Core.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

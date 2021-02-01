@@ -62,10 +62,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/damiano/CLionProjects/QuickCurses
+CMAKE_SOURCE_DIR = /home/damiano/QuickCurses
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/damiano/CLionProjects/QuickCurses/build
+CMAKE_BINARY_DIR = /home/damiano/QuickCurses/build
 
 # Include any dependencies generated for this target.
 include src/Core/CMakeFiles/Core.dir/depend.make
@@ -76,62 +76,32 @@ include src/Core/CMakeFiles/Core.dir/progress.make
 # Include the compile flags for this target's objects.
 include src/Core/CMakeFiles/Core.dir/flags.make
 
-src/Core/CMakeFiles/Core.dir/Engine_base.cpp.o: src/Core/CMakeFiles/Core.dir/flags.make
-src/Core/CMakeFiles/Core.dir/Engine_base.cpp.o: ../src/Core/Engine_base.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/Core/CMakeFiles/Core.dir/Engine_base.cpp.o"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Core.dir/Engine_base.cpp.o -c /home/damiano/CLionProjects/QuickCurses/src/Core/Engine_base.cpp
+src/Core/CMakeFiles/Core.dir/SubEngine.cpp.o: src/Core/CMakeFiles/Core.dir/flags.make
+src/Core/CMakeFiles/Core.dir/SubEngine.cpp.o: ../src/Core/SubEngine.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/damiano/QuickCurses/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object src/Core/CMakeFiles/Core.dir/SubEngine.cpp.o"
+	cd /home/damiano/QuickCurses/build/src/Core && /usr/lib64/ccache/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Core.dir/SubEngine.cpp.o -c /home/damiano/QuickCurses/src/Core/SubEngine.cpp
 
-src/Core/CMakeFiles/Core.dir/Engine_base.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Core.dir/Engine_base.cpp.i"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/damiano/CLionProjects/QuickCurses/src/Core/Engine_base.cpp > CMakeFiles/Core.dir/Engine_base.cpp.i
+src/Core/CMakeFiles/Core.dir/SubEngine.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Core.dir/SubEngine.cpp.i"
+	cd /home/damiano/QuickCurses/build/src/Core && /usr/lib64/ccache/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/damiano/QuickCurses/src/Core/SubEngine.cpp > CMakeFiles/Core.dir/SubEngine.cpp.i
 
-src/Core/CMakeFiles/Core.dir/Engine_base.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Core.dir/Engine_base.cpp.s"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/damiano/CLionProjects/QuickCurses/src/Core/Engine_base.cpp -o CMakeFiles/Core.dir/Engine_base.cpp.s
-
-src/Core/CMakeFiles/Core.dir/Object_base.cpp.o: src/Core/CMakeFiles/Core.dir/flags.make
-src/Core/CMakeFiles/Core.dir/Object_base.cpp.o: ../src/Core/Object_base.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object src/Core/CMakeFiles/Core.dir/Object_base.cpp.o"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Core.dir/Object_base.cpp.o -c /home/damiano/CLionProjects/QuickCurses/src/Core/Object_base.cpp
-
-src/Core/CMakeFiles/Core.dir/Object_base.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Core.dir/Object_base.cpp.i"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/damiano/CLionProjects/QuickCurses/src/Core/Object_base.cpp > CMakeFiles/Core.dir/Object_base.cpp.i
-
-src/Core/CMakeFiles/Core.dir/Object_base.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Core.dir/Object_base.cpp.s"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/damiano/CLionProjects/QuickCurses/src/Core/Object_base.cpp -o CMakeFiles/Core.dir/Object_base.cpp.s
-
-src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.o: src/Core/CMakeFiles/Core.dir/flags.make
-src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.o: ../src/Core/EventLoop_base.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.o"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Core.dir/EventLoop_base.cpp.o -c /home/damiano/CLionProjects/QuickCurses/src/Core/EventLoop_base.cpp
-
-src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Core.dir/EventLoop_base.cpp.i"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/damiano/CLionProjects/QuickCurses/src/Core/EventLoop_base.cpp > CMakeFiles/Core.dir/EventLoop_base.cpp.i
-
-src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Core.dir/EventLoop_base.cpp.s"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && /usr/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/damiano/CLionProjects/QuickCurses/src/Core/EventLoop_base.cpp -o CMakeFiles/Core.dir/EventLoop_base.cpp.s
+src/Core/CMakeFiles/Core.dir/SubEngine.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Core.dir/SubEngine.cpp.s"
+	cd /home/damiano/QuickCurses/build/src/Core && /usr/lib64/ccache/bin/g++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/damiano/QuickCurses/src/Core/SubEngine.cpp -o CMakeFiles/Core.dir/SubEngine.cpp.s
 
 # Object files for target Core
 Core_OBJECTS = \
-"CMakeFiles/Core.dir/Engine_base.cpp.o" \
-"CMakeFiles/Core.dir/Object_base.cpp.o" \
-"CMakeFiles/Core.dir/EventLoop_base.cpp.o"
+"CMakeFiles/Core.dir/SubEngine.cpp.o"
 
 # External object files for target Core
 Core_EXTERNAL_OBJECTS =
 
-src/Core/libCore.a: src/Core/CMakeFiles/Core.dir/Engine_base.cpp.o
-src/Core/libCore.a: src/Core/CMakeFiles/Core.dir/Object_base.cpp.o
-src/Core/libCore.a: src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.o
+src/Core/libCore.a: src/Core/CMakeFiles/Core.dir/SubEngine.cpp.o
 src/Core/libCore.a: src/Core/CMakeFiles/Core.dir/build.make
 src/Core/libCore.a: src/Core/CMakeFiles/Core.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX static library libCore.a"
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && $(CMAKE_COMMAND) -P CMakeFiles/Core.dir/cmake_clean_target.cmake
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Core.dir/link.txt --verbose=$(VERBOSE)
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/damiano/QuickCurses/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX static library libCore.a"
+	cd /home/damiano/QuickCurses/build/src/Core && $(CMAKE_COMMAND) -P CMakeFiles/Core.dir/cmake_clean_target.cmake
+	cd /home/damiano/QuickCurses/build/src/Core && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Core.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
 src/Core/CMakeFiles/Core.dir/build: src/Core/libCore.a
@@ -139,10 +109,10 @@ src/Core/CMakeFiles/Core.dir/build: src/Core/libCore.a
 .PHONY : src/Core/CMakeFiles/Core.dir/build
 
 src/Core/CMakeFiles/Core.dir/clean:
-	cd /home/damiano/CLionProjects/QuickCurses/build/src/Core && $(CMAKE_COMMAND) -P CMakeFiles/Core.dir/cmake_clean.cmake
+	cd /home/damiano/QuickCurses/build/src/Core && $(CMAKE_COMMAND) -P CMakeFiles/Core.dir/cmake_clean.cmake
 .PHONY : src/Core/CMakeFiles/Core.dir/clean
 
 src/Core/CMakeFiles/Core.dir/depend:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/damiano/CLionProjects/QuickCurses /home/damiano/CLionProjects/QuickCurses/src/Core /home/damiano/CLionProjects/QuickCurses/build /home/damiano/CLionProjects/QuickCurses/build/src/Core /home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/Core.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/damiano/QuickCurses/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/damiano/QuickCurses /home/damiano/QuickCurses/src/Core /home/damiano/QuickCurses/build /home/damiano/QuickCurses/build/src/Core /home/damiano/QuickCurses/build/src/Core/CMakeFiles/Core.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : src/Core/CMakeFiles/Core.dir/depend
 

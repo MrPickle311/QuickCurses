@@ -1,4 +1,4 @@
-# Install script for directory: /home/damiano/CLionProjects/QuickCurses/src
+# Install script for directory: /home/damiano/QuickCurses/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,6 +44,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/damiano/CLionProjects/QuickCurses/build/src/Core/cmake_install.cmake")
+  include("/home/damiano/QuickCurses/build/src/Core/cmake_install.cmake")
 endif()
 

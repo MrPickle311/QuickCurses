@@ -67,10 +67,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/damiano/CLionProjects/QuickCurses
+CMAKE_SOURCE_DIR = /home/damiano/QuickCurses
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/damiano/CLionProjects/QuickCurses/build
+CMAKE_BINARY_DIR = /home/damiano/QuickCurses/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -99,14 +99,14 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles /home/damiano/CLionProjects/QuickCurses/build/src//CMakeFiles/progress.marks
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 0
+	cd /home/damiano/QuickCurses/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles /home/damiano/QuickCurses/build/src//CMakeFiles/progress.marks
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/clean
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/clean
 .PHONY : clean
 
 # The main clean target
@@ -116,22 +116,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/preinstall
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/damiano/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 src/CMakeFiles/ALL_LIBRARIES.dir/rule:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/CMakeFiles/ALL_LIBRARIES.dir/rule
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/CMakeFiles/ALL_LIBRARIES.dir/rule
 .PHONY : src/CMakeFiles/ALL_LIBRARIES.dir/rule
 
 # Convenience name for target.
@@ -141,7 +141,7 @@ ALL_LIBRARIES: src/CMakeFiles/ALL_LIBRARIES.dir/rule
 
 # fast build rule for target.
 ALL_LIBRARIES/fast:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/ALL_LIBRARIES.dir/build.make src/CMakeFiles/ALL_LIBRARIES.dir/build
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/CMakeFiles/ALL_LIBRARIES.dir/build.make src/CMakeFiles/ALL_LIBRARIES.dir/build
 .PHONY : ALL_LIBRARIES/fast
 
 # Help Target
@@ -164,6 +164,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/damiano/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

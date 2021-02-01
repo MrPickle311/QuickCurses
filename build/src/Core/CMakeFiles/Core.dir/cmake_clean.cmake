@@ -1,7 +1,5 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/Core.dir/Engine_base.cpp.o"
-  "CMakeFiles/Core.dir/EventLoop_base.cpp.o"
-  "CMakeFiles/Core.dir/Object_base.cpp.o"
+  "CMakeFiles/Core.dir/SubEngine.cpp.o"
   "libCore.a"
   "libCore.pdb"
 )

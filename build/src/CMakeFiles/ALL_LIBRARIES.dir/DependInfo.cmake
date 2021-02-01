@@ -5,7 +5,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # Targets to which this target links.
 set(CMAKE_TARGET_LINKED_INFO_FILES
-  "/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/Core.dir/DependInfo.cmake"
+  "/home/damiano/QuickCurses/build/src/Core/CMakeFiles/Core.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

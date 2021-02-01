@@ -1,4 +1,4 @@
-# Install script for directory: /home/damiano/CLionProjects/QuickCurses/src/Core
+# Install script for directory: /home/damiano/QuickCurses/src/Core
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

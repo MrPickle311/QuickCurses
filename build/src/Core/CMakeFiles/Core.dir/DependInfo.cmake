@@ -4,9 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/damiano/CLionProjects/QuickCurses/src/Core/Engine_base.cpp" "/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/Core.dir/Engine_base.cpp.o"
-  "/home/damiano/CLionProjects/QuickCurses/src/Core/EventLoop_base.cpp" "/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.o"
-  "/home/damiano/CLionProjects/QuickCurses/src/Core/Object_base.cpp" "/home/damiano/CLionProjects/QuickCurses/build/src/Core/CMakeFiles/Core.dir/Object_base.cpp.o"
+  "/home/damiano/QuickCurses/src/Core/SubEngine.cpp" "/home/damiano/QuickCurses/build/src/Core/CMakeFiles/Core.dir/SubEngine.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

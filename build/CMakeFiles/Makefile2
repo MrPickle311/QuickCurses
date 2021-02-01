@@ -63,10 +63,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/damiano/CLionProjects/QuickCurses
+CMAKE_SOURCE_DIR = /home/damiano/QuickCurses
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/damiano/CLionProjects/QuickCurses/build
+CMAKE_BINARY_DIR = /home/damiano/QuickCurses/build
 
 #=============================================================================
 # Directory level rules for the build root directory
@@ -134,14 +134,14 @@ CMakeFiles/QuickCurses.dir/all: src/CMakeFiles/ALL_LIBRARIES.dir/all
 CMakeFiles/QuickCurses.dir/all: src/Core/CMakeFiles/Core.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/QuickCurses.dir/build.make CMakeFiles/QuickCurses.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/QuickCurses.dir/build.make CMakeFiles/QuickCurses.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles --progress-num=6,7 "Built target QuickCurses"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/damiano/QuickCurses/build/CMakeFiles --progress-num=4,5 "Built target QuickCurses"
 .PHONY : CMakeFiles/QuickCurses.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/QuickCurses.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 7
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 5
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/QuickCurses.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 0
 .PHONY : CMakeFiles/QuickCurses.dir/rule
 
 # Convenience name for target.
@@ -161,14 +161,14 @@ CMakeFiles/QuickCurses.dir/clean:
 src/CMakeFiles/ALL_LIBRARIES.dir/all: src/Core/CMakeFiles/Core.dir/all
 	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/ALL_LIBRARIES.dir/build.make src/CMakeFiles/ALL_LIBRARIES.dir/depend
 	$(MAKE) $(MAKESILENT) -f src/CMakeFiles/ALL_LIBRARIES.dir/build.make src/CMakeFiles/ALL_LIBRARIES.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles --progress-num=1 "Built target ALL_LIBRARIES"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/damiano/QuickCurses/build/CMakeFiles --progress-num=1 "Built target ALL_LIBRARIES"
 .PHONY : src/CMakeFiles/ALL_LIBRARIES.dir/all
 
 # Build rule for subdir invocation for target.
 src/CMakeFiles/ALL_LIBRARIES.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 5
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 3
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/CMakeFiles/ALL_LIBRARIES.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 0
 .PHONY : src/CMakeFiles/ALL_LIBRARIES.dir/rule
 
 # Convenience name for target.
@@ -188,14 +188,14 @@ src/CMakeFiles/ALL_LIBRARIES.dir/clean:
 src/Core/CMakeFiles/Core.dir/all:
 	$(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/depend
 	$(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/damiano/CLionProjects/QuickCurses/build/CMakeFiles --progress-num=2,3,4,5 "Built target Core"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/damiano/QuickCurses/build/CMakeFiles --progress-num=2,3 "Built target Core"
 .PHONY : src/Core/CMakeFiles/Core.dir/all
 
 # Build rule for subdir invocation for target.
 src/Core/CMakeFiles/Core.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 4
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 2
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/CMakeFiles/Core.dir/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 0
 .PHONY : src/Core/CMakeFiles/Core.dir/rule
 
 # Convenience name for target.

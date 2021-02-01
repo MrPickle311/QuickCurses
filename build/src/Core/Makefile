@@ -67,10 +67,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/damiano/CLionProjects/QuickCurses
+CMAKE_SOURCE_DIR = /home/damiano/QuickCurses
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/damiano/CLionProjects/QuickCurses/build
+CMAKE_BINARY_DIR = /home/damiano/QuickCurses/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -99,14 +99,14 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles /home/damiano/CLionProjects/QuickCurses/build/src/Core//CMakeFiles/progress.marks
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/CLionProjects/QuickCurses/build/CMakeFiles 0
+	cd /home/damiano/QuickCurses/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles /home/damiano/QuickCurses/build/src/Core//CMakeFiles/progress.marks
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/damiano/QuickCurses/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/clean
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/clean
 .PHONY : clean
 
 # The main clean target
@@ -116,22 +116,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/preinstall
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/preinstall
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/damiano/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 src/Core/CMakeFiles/Core.dir/rule:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/CMakeFiles/Core.dir/rule
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 src/Core/CMakeFiles/Core.dir/rule
 .PHONY : src/Core/CMakeFiles/Core.dir/rule
 
 # Convenience name for target.
@@ -141,89 +141,35 @@ Core: src/Core/CMakeFiles/Core.dir/rule
 
 # fast build rule for target.
 Core/fast:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/build
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/build
 .PHONY : Core/fast
 
-Engine_base.o: Engine_base.cpp.o
+SubEngine.o: SubEngine.cpp.o
 
-.PHONY : Engine_base.o
-
-# target to build an object file
-Engine_base.cpp.o:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/Engine_base.cpp.o
-.PHONY : Engine_base.cpp.o
-
-Engine_base.i: Engine_base.cpp.i
-
-.PHONY : Engine_base.i
-
-# target to preprocess a source file
-Engine_base.cpp.i:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/Engine_base.cpp.i
-.PHONY : Engine_base.cpp.i
-
-Engine_base.s: Engine_base.cpp.s
-
-.PHONY : Engine_base.s
-
-# target to generate assembly for a file
-Engine_base.cpp.s:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/Engine_base.cpp.s
-.PHONY : Engine_base.cpp.s
-
-EventLoop_base.o: EventLoop_base.cpp.o
-
-.PHONY : EventLoop_base.o
+.PHONY : SubEngine.o
 
 # target to build an object file
-EventLoop_base.cpp.o:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.o
-.PHONY : EventLoop_base.cpp.o
+SubEngine.cpp.o:
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/SubEngine.cpp.o
+.PHONY : SubEngine.cpp.o
 
-EventLoop_base.i: EventLoop_base.cpp.i
+SubEngine.i: SubEngine.cpp.i
 
-.PHONY : EventLoop_base.i
-
-# target to preprocess a source file
-EventLoop_base.cpp.i:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.i
-.PHONY : EventLoop_base.cpp.i
-
-EventLoop_base.s: EventLoop_base.cpp.s
-
-.PHONY : EventLoop_base.s
-
-# target to generate assembly for a file
-EventLoop_base.cpp.s:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/EventLoop_base.cpp.s
-.PHONY : EventLoop_base.cpp.s
-
-Object_base.o: Object_base.cpp.o
-
-.PHONY : Object_base.o
-
-# target to build an object file
-Object_base.cpp.o:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/Object_base.cpp.o
-.PHONY : Object_base.cpp.o
-
-Object_base.i: Object_base.cpp.i
-
-.PHONY : Object_base.i
+.PHONY : SubEngine.i
 
 # target to preprocess a source file
-Object_base.cpp.i:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/Object_base.cpp.i
-.PHONY : Object_base.cpp.i
+SubEngine.cpp.i:
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/SubEngine.cpp.i
+.PHONY : SubEngine.cpp.i
 
-Object_base.s: Object_base.cpp.s
+SubEngine.s: SubEngine.cpp.s
 
-.PHONY : Object_base.s
+.PHONY : SubEngine.s
 
 # target to generate assembly for a file
-Object_base.cpp.s:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/Object_base.cpp.s
-.PHONY : Object_base.cpp.s
+SubEngine.cpp.s:
+	cd /home/damiano/QuickCurses/build && $(MAKE) $(MAKESILENT) -f src/Core/CMakeFiles/Core.dir/build.make src/Core/CMakeFiles/Core.dir/SubEngine.cpp.s
+.PHONY : SubEngine.cpp.s
 
 # Help Target
 help:
@@ -234,15 +180,9 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... Core"
-	@echo "... Engine_base.o"
-	@echo "... Engine_base.i"
-	@echo "... Engine_base.s"
-	@echo "... EventLoop_base.o"
-	@echo "... EventLoop_base.i"
-	@echo "... EventLoop_base.s"
-	@echo "... Object_base.o"
-	@echo "... Object_base.i"
-	@echo "... Object_base.s"
+	@echo "... SubEngine.o"
+	@echo "... SubEngine.i"
+	@echo "... SubEngine.s"
 .PHONY : help
 
 
@@ -254,6 +194,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/damiano/CLionProjects/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/damiano/QuickCurses/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 
