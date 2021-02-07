@@ -1,5 +1,17 @@
+#don't track content of these folders
 cmake-build-debug/
 .idea/
 docs
 .vscode
 build
+build/
+
+#compiled surce
+*.exe
+*.a
+*.so
+*.o
+*.dll
+
+#cmake files
+*.cmake
