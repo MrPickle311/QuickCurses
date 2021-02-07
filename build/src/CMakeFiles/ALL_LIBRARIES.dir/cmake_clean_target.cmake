@@ -1,3 +1,0 @@
-file(REMOVE_RECURSE
-  "libALL_LIBRARIES.a"
-)

@@ -1,9 +1,0 @@
-/home/damiano/QuickCurses/build/CMakeFiles/edit_cache.dir
-/home/damiano/QuickCurses/build/CMakeFiles/rebuild_cache.dir
-/home/damiano/QuickCurses/build/CMakeFiles/QuickCurses.dir
-/home/damiano/QuickCurses/build/src/CMakeFiles/rebuild_cache.dir
-/home/damiano/QuickCurses/build/src/CMakeFiles/edit_cache.dir
-/home/damiano/QuickCurses/build/src/CMakeFiles/ALL_LIBRARIES.dir
-/home/damiano/QuickCurses/build/src/Core/CMakeFiles/rebuild_cache.dir
-/home/damiano/QuickCurses/build/src/Core/CMakeFiles/edit_cache.dir
-/home/damiano/QuickCurses/build/src/Core/CMakeFiles/Core.dir

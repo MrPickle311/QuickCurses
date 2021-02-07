@@ -12,11 +12,11 @@ private:
     struct Node
     {
         std::shared_ptr<T> data_;
-        std::unique_ptr<T> next_;
+        std::unique_ptr<Node> next_;
     };
     
     std::unique_ptr<Node> head_;
-    std::shared_ptr<Node> tail_;
+    Node* tail_;//virtual node,so its fully safe
 
     mutable std::mutex head_mutex_;
     mutable std::mutex tail_mutex_;
@@ -25,9 +25,9 @@ private:
 private:
     bool headIsTail() const
     {
-        return head.get() == tail.get();
+        return head_.get() == tail_;
     }
-    std::shared_ptr<Node> getTail()
+    Node* getTail()
     {
         std::lock_guard<std::mutex> lock{tail_mutex_};
         return tail_;
@@ -35,8 +35,8 @@ private:
     std::unique_ptr<Node> popHead()
     {
         std::unique_ptr<Node> old_head {std::move(head_)};
-        head_ = std::move(head_->next_);
-        return head_;
+        head_ = std::move(old_head->next_);
+        return old_head;
     }
     std::unique_lock<std::mutex> waitForData()
     {
@@ -47,6 +47,12 @@ private:
     std::unique_ptr<Node> waitPopHead()
     {
         std::unique_lock<std::mutex> lock{waitForData()};
+        return popHead();
+    }
+    std::unique_ptr<Node> waitPopHead(T& value)
+    {
+        std::unique_lock<std::mutex> lock{waitForData()};
+        value = std::move(*head_->data_);
         return popHead();
     }
     std::unique_ptr<Node> tryPopHead()
@@ -72,17 +78,47 @@ public:
 
     void push(T new_value)
     {
-        //move to heap
-        std::shared_ptr<T> new_value_ptr {std::make_shared<T>{std::move(new_value)}};
-        //create new node
-        std::unique_ptr<Node> tail_ptr {new Node{}};
+        //move to the heap
+        std::shared_ptr<T> new_value_ptr {std::make_shared<T>(std::move(new_value))};
+        //create a new virtual node
+        std::unique_ptr<Node> tail_ptr {new Node};
 
         //rebindings
         {
+            //dangerous!
+            Node* const temp_node = tail_ptr.get();
+            //lock
             std::lock_guard<std::mutex> lock{tail_mutex_};
-            tail_ptr->data_ = new_value_ptr;
-            tail_ptr
+            //rebindings operations
+            tail_->data_ = new_value_ptr;
+            tail_->next_ = std::move(tail_ptr);
+            tail_ = temp_node;
         }
+        data_condition_.notify_one();
     }
-    //Tu skończyłem
+    
+    std::shared_ptr<T> waitAndPop()
+    {
+        std::unique_ptr<Node> const old_head {waitPopHead()};
+        return old_head->data_;
+    }
+    void waitAndPop(T& value)
+    {
+        std::unique_ptr<Node> const old_head {waitPopHead(value)};
+    }
+    std::shared_ptr<T> tryPop()
+    {
+        std::unique_ptr<Node> old_head {tryPopHead()};
+        return old_head ? old_head->data_ : nullptr;
+    }
+    bool tryPop(T& value)
+    {
+        std::unique_ptr<Node> const old_head {tryPopHead(value)};
+        return old_head != nullptr;
+    }
+    bool empty() const
+    {
+        std::lock_guard<std::mutex> lock{head_mutex_};
+        return headIsTail();
+    }
 };
