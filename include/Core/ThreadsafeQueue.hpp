@@ -121,4 +121,8 @@ public:
         std::lock_guard<std::mutex> lock{head_mutex_};
         return headIsTail();
     }
+    void clear()
+    {
+        //UZUPEŁNIĆ
+    }
 };
