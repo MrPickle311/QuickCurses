@@ -4,7 +4,7 @@
 #include <future>
 #include <thread>
 #include <atomic>
-
+#include <iostream>
 template<typename T>
 class ThreadsafeQueue
 {
@@ -123,6 +123,12 @@ public:
     }
     void clear()
     {
-        //UZUPEŁNIĆ
+        std::lock_guard<std::mutex> lock{tail_mutex_};
+        while(!headIsTail())
+        {
+            std::cout << "Deleting ...\n";
+            tryPop();
+        }
+            
     }
 };
