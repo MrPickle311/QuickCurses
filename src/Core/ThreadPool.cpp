@@ -1,4 +1,4 @@
-#include "../Core/ThreadPool.hpp"
+#include "../../include/Core/ThreadPool.hpp"
 
 //ThreadJoiner
 
