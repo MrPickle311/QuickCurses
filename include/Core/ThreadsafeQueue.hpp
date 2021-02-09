@@ -125,10 +125,6 @@ public:
     {
         std::lock_guard<std::mutex> lock{tail_mutex_};
         while(!headIsTail())
-        {
-            std::cout << "Deleting ...\n";
-            tryPop();
-        }
-            
+            tryPopHead();    
     }
 };

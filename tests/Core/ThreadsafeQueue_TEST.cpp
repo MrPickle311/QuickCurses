@@ -5,12 +5,14 @@
 #include <list>
 #include <vector>
 #include <algorithm>
+#include <type_traits>
 
 //This code is simple, not fast because its test code
 
-std::vector<int> mergeVectors(const std::vector<int>& left_vector,const std::vector<int>& right_vector)
+template<typename T>
+std::vector<T> mergeVectors(const std::vector<T>& left_vector,const std::vector<T>& right_vector)
 {
-    std::vector<int> new_values;
+    std::vector<T> new_values;
     size_t const new_size {left_vector.size() + right_vector.size()};
     new_values.resize(new_size);
 
@@ -25,22 +27,25 @@ void errorInfo(const std::exception& e)
     std::cout << "\n" << __LINE__ << "\n" << e.what() << std::endl;
 }
 
+template<typename T>
 class QueueRefs
 {
 protected:
-    ThreadsafeQueue<int>& queue_;
+    ThreadsafeQueue<T>& queue_;
     std::shared_future<void>& ready_;
-    QueueRefs(ThreadsafeQueue<int>& queue,std::shared_future<void>& ready):
+    QueueRefs(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
         queue_{queue},
         ready_{ready}
     {}
+    virtual ~QueueRefs() {}
 };
 
+template<typename T>
 class QueuePusher:
-    public QueueRefs
+    public QueueRefs<T>
 {
 private:
-    std::vector<int> values_to_insert;
+    std::vector<T> values_to_insert;
     std::vector<std::promise<void>> push_ready_list_;
     std::vector<std::future<void>> push_done_list_;
 
@@ -52,28 +57,21 @@ private:
         push_done_list_.resize(pushes_nmbr_);   
     }
 public:
-    QueuePusher(ThreadsafeQueue<int>& queue,std::shared_future<void>& ready):
-        QueueRefs(queue,ready),
+    QueuePusher(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
+        QueueRefs<T>(queue,ready),
         values_to_insert{},
         push_ready_list_{},
         push_done_list_{},
         pushes_nmbr_{0}
     {}
-    void addValues(std::vector<int> values)
+    void addValues(std::vector<T> values)
     {
-        std::vector<int> new_values{mergeVectors(values,values_to_insert)};
+        std::vector<T> new_values{mergeVectors(values,values_to_insert)};
         pushes_nmbr_ = new_values.size();
         values_to_insert.clear();
         values_to_insert = std::move(new_values);
         increasePushFutures();
-    }
-    void printValuesToInsert() const
-    {
-        std::cout << "Elements : \n";
-        for(auto e: values_to_insert)
-            std::cout << e << " ";
-        std::cout << std::endl;
-    }  
+    } 
     void clearValues()
     {
         values_to_insert.clear();
@@ -88,8 +86,8 @@ public:
                                         [this,i]
                                         {
                                             push_ready_list_[i].set_value();
-                                            ready_.wait();
-                                            queue_.push(values_to_insert[i]);
+                                            QueueRefs<T>::ready_.wait();
+                                            QueueRefs<T>::queue_.push(values_to_insert[i]);
                                         }
                                     );
             }
@@ -128,12 +126,13 @@ public:
     }
 };
 
+template<typename T>
 class QueueTryPopPtr:
-    public QueueRefs
+    public QueueRefs<T>
 {
 private:
     std::vector<std::promise<void>> try_pop_ptr_ready_list_;
-    std::vector<std::future<std::shared_ptr<int>>> try_pop_ptr_done_list_;
+    std::vector<std::future<std::shared_ptr<T>>> try_pop_ptr_done_list_;
 private:
 void increaseTryPopPtrFutures(size_t n)
 {
@@ -141,8 +140,8 @@ void increaseTryPopPtrFutures(size_t n)
     try_pop_ptr_done_list_.resize(n);
 }
 public:
-    QueueTryPopPtr(ThreadsafeQueue<int>& queue,std::shared_future<void>& ready):
-        QueueRefs(queue, ready),
+    QueueTryPopPtr(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
+        QueueRefs<T>(queue, ready),
         try_pop_ptr_ready_list_{},
         try_pop_ptr_done_list_{}
     {}
@@ -158,8 +157,8 @@ public:
                                     [this,i]
                                     {
                                         try_pop_ptr_ready_list_[i].set_value();
-                                        ready_.wait();
-                                        return queue_.tryPop();
+                                        QueueRefs<T>::ready_.wait();
+                                        return QueueRefs<T>::queue_.tryPop();
                                     }
                                 );
             }
@@ -198,8 +197,9 @@ public:
     }
 };
 
+template<typename T>
 class QueueTryPopRef:
-    public QueueRefs
+    public QueueRefs<T>
 {
 private:
     std::vector<std::promise<void>> try_pop_ref_ready_list_;
@@ -211,8 +211,8 @@ private:
         try_pop_ref_done_list_.resize(n);
     }
 public:
-    QueueTryPopRef(ThreadsafeQueue<int>& queue,std::shared_future<void>& ready):
-        QueueRefs(queue, ready),
+    QueueTryPopRef(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
+        QueueRefs<T>(queue, ready),
         try_pop_ref_ready_list_{},
         try_pop_ref_done_list_{}
     {}
@@ -228,10 +228,10 @@ public:
                                     [this,i]
                                     {
                                         bool pred;
-                                        int x;
+                                        T x;
                                         try_pop_ref_ready_list_[i].set_value();
-                                        ready_.wait();
-                                        pred =  queue_.tryPop(x);
+                                        QueueRefs<T>::ready_.wait();
+                                        pred =  QueueRefs<T>::queue_.tryPop(x);
                                         return pred;
                                     }
                                 );
@@ -272,20 +272,21 @@ public:
 };
 
 //Facade
+template<typename T>
 class ThreadsafeQueueTest:
-    public testing::Test
+     public testing::Test
 {
 protected:
-    std::shared_ptr<ThreadsafeQueue<int>> queue_;
+    std::shared_ptr<ThreadsafeQueue<T>> queue_;
     std::promise<void> go_;
     std::shared_future<void> ready_;
 
-    QueuePusher pusher_;
-    QueueTryPopPtr try_pop_ptr_;
-    QueueTryPopRef try_pop_ref_;
+    QueuePusher<T> pusher_;
+    QueueTryPopPtr<T> try_pop_ptr_;
+    QueueTryPopRef<T> try_pop_ref_;
 
     ThreadsafeQueueTest():
-        queue_{new ThreadsafeQueue<int>},
+        queue_{new ThreadsafeQueue<T>},
         go_{},
         ready_{go_.get_future()},
         pusher_{*queue_,ready_},
@@ -299,10 +300,9 @@ protected:
         try_pop_ptr_.waitForTryPopPtr();
         try_pop_ref_.waitForTryPopRef();
     }
-    void setPushValues(std::vector<int> values)
+    void setPushValues(std::vector<T> values)
     {
         pusher_.addValues(values);
-        pusher_.printValuesToInsert();
         pusher_.enablePushing();
     }
     void setTryPopPtrInvocations(size_t n)
@@ -354,17 +354,39 @@ TEST(TEST,SimpleSingleThreadTest)
     EXPECT_EQ(a,67);
 }
 
-TEST_F(ThreadsafeQueueTest,TryPopTest)
+using MyTypes = testing::Types<int,std::string,std::vector<std::pair<int,std::string>>>;
+TYPED_TEST_SUITE(ThreadsafeQueueTest,MyTypes);
+
+TYPED_TEST(ThreadsafeQueueTest,TryPopTest)
 {
-    std::vector<int> v;
-    for (size_t i = 0; i < 1000; i++)
-        v.push_back(i);
-    EXPECT_NO_THROW(setPushValues(v));
-    EXPECT_NO_THROW(setTryPopPtrInvocations(300));
-    EXPECT_NO_THROW(setTryPopRefInvocations(400));
-    EXPECT_NO_THROW(runTest());
-    EXPECT_NO_THROW(clearQueue());
-    EXPECT_TRUE(queue_->empty());
+    std::vector<TypeParam> v;
+    if constexpr (std::is_same<TypeParam,int>::value)
+    {
+        for (size_t i = 0; i < 1000; i++)
+           v.push_back(i);
+    }
+    else if constexpr (std::is_same<TypeParam,std::string>::value)
+    {
+        for (size_t i = 0; i < 1000; i++)
+           v.push_back("str");
+    }
+    else if constexpr (std::is_same<TypeParam,std::vector<std::pair<int,std::string>>>::value)
+    {
+        std::pair<int,std::string> p{50,"str"};
+        std::vector<std::pair<int,std::string>> v1;
+        for (size_t i = 0; i < 1000; i++)
+            v1.push_back(p);
+        for (size_t i = 0; i < 1000; i++)
+           v.push_back(v1);
+    }
+    EXPECT_NO_THROW(this->setPushValues(v););
+    EXPECT_NO_THROW(this->setTryPopPtrInvocations(300));
+    EXPECT_NO_THROW(this->setTryPopRefInvocations(400));
+    EXPECT_NO_THROW(this->runTest());
+    EXPECT_NO_THROW(this->clearQueue());
+    EXPECT_TRUE(this->queue_->empty());
+    TypeParam checker;
+    EXPECT_FALSE(this->queue_->tryPop(checker));
 }
 
 int main(int argc, char **argv)
