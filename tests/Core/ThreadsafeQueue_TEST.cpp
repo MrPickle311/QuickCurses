@@ -22,92 +22,96 @@ std::vector<T> mergeVectors(const std::vector<T>& left_vector,const std::vector<
     return new_values;
 }
 
-void errorInfo(const std::exception& e)
+//all raw-data, direct access
+template<typename StoredType,typename MethodReturnedType>
+class QueueTester_base
 {
-    std::cout << "\n" << __LINE__ << "\n" << e.what() << std::endl;
-}
-
-template<typename T>
-class QueueRefs
-{
-protected:
-    ThreadsafeQueue<T>& queue_;
+public:
+    //Main flags,comman data
+    ThreadsafeQueue<StoredType>& queue_;
     std::shared_future<void>& ready_;
-    QueueRefs(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
+
+    //Action specified lists
+    std::vector<std::promise<void>> action_ready_list_;
+    std::vector<std::future<MethodReturnedType>> action_done_list_;
+
+    QueueTester_base(ThreadsafeQueue<StoredType>& queue,std::shared_future<void>& ready):
         queue_{queue},
-        ready_{ready}
+        ready_{ready},
+        action_ready_list_{},
+        action_done_list_{}
     {}
-    virtual ~QueueRefs() {}
+    virtual void setFuturesNumber(size_t number)
+    {
+        action_ready_list_.resize(number);
+        action_done_list_.resize(number);
+    }
+    virtual ~QueueTester_base() {}
 };
 
-template<typename T>
-class QueuePusher:
-    public QueueRefs<T>
+//i need to know types returned by queue
+//template-method
+template<typename StoredType,typename MethodReturnedType>
+class QueueTesterEnabler
 {
 private:
-    std::vector<T> values_to_insert;
-    std::vector<std::promise<void>> push_ready_list_;
-    std::vector<std::future<void>> push_done_list_;
-
-    size_t pushes_nmbr_;
-private:
-    void increasePushFutures()
-    {  
-        push_ready_list_.resize(pushes_nmbr_); 
-        push_done_list_.resize(pushes_nmbr_);   
-    }
-public:
-    QueuePusher(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
-        QueueRefs<T>(queue,ready),
-        values_to_insert{},
-        push_ready_list_{},
-        push_done_list_{},
-        pushes_nmbr_{0}
+    QueueTester_base<StoredType,MethodReturnedType>& base_ref_;
+protected:
+    virtual void printData() const //hook
     {}
-    void addValues(std::vector<T> values)
-    {
-        std::vector<T> new_values{mergeVectors(values,values_to_insert)};
-        pushes_nmbr_ = new_values.size();
-        values_to_insert.clear();
-        values_to_insert = std::move(new_values);
-        increasePushFutures();
-    } 
-    void clearValues()
-    {
-        values_to_insert.clear();
-    }
-    void enablePushing()
+    virtual void prepareData() //hook
+    {}
+    virtual MethodReturnedType operation(size_t i) = 0; //required to implementation by the others
+public:
+    QueueTesterEnabler(QueueTester_base<StoredType,MethodReturnedType>& base_ref):
+        base_ref_{base_ref}
+    {}
+    void enable(size_t iterations_nmbr)
     {
         try
         {
-            for(size_t i{0}; i < pushes_nmbr_; ++i)
+            printData(); 
+            for(size_t i{0}; i < iterations_nmbr; ++i)
             {
-                push_done_list_[i] = std::async(std::launch::async,
+                base_ref_.action_done_list_[i] = std::async(std::launch::async,
                                         [this,i]
                                         {
-                                            push_ready_list_[i].set_value();
-                                            QueueRefs<T>::ready_.wait();
-                                            QueueRefs<T>::queue_.push(values_to_insert[i]);
+                                            prepareData();
+                                            base_ref_.action_ready_list_[i].set_value(); 
+                                            base_ref_.ready_.wait(); 
+                                            return operation(i);
                                         }
                                     );
             }
         }
         catch(const std::exception& e)
         {
-            errorInfo(e);
             throw;
         }
     }
-    void waitForPush()
+};
+
+//zastanów się nad metodą szablonową dla wszystkich try-catchy!
+//ale to jak skończę najpierw to 
+
+template<typename StoredType,typename MethodReturnedType>
+class PendingObject
+{
+private:
+    QueueTester_base<StoredType,MethodReturnedType>& base_ref_;
+public:
+    PendingObject(QueueTester_base<StoredType,MethodReturnedType>& base_ref):
+        base_ref_{base_ref}
+    {}
+    void wait()
     {
         try
         {
-            for(auto& x: push_ready_list_)
+            for(auto& x: base_ref_.action_ready_list_)
                 x.get_future().wait();
         }
-        catch(const std::exception& e)
+        catch(...)
         {
-            errorInfo(e);
             throw;
         }
     }
@@ -115,163 +119,102 @@ public:
     {
         try
         {
-            for(auto& x: push_done_list_)
+            for(auto& x: base_ref_.action_done_list_)
                 x.get();
         }
-        catch(const std::exception& e)
+        catch(...)
         {
-            errorInfo(e);
             throw;
-        }   
+        }
+    }
+};
+
+//queue.push() returns void
+template<typename T>
+class QueuePusher:
+    public PendingObject<T,void>,
+    public QueueTesterEnabler<T,void>
+{
+    using PObject = PendingObject<T,void>;
+    using Enabler = QueueTesterEnabler<T,void>;
+private:
+    std::vector<T> values_to_insert;
+    size_t pushes_nmbr_;
+
+    QueueTester_base<T,void> base_;
+protected:
+    virtual void operation(size_t i)
+    {
+        base_.queue_.push(values_to_insert[i]);
+    }
+public:
+    QueuePusher(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
+        PObject{base_},
+        Enabler{base_},
+        base_{queue,ready},
+        values_to_insert{},
+        pushes_nmbr_{0}
+    {}
+    virtual ~QueuePusher() {}
+    void addValues(std::vector<T> values)
+    {
+        std::vector<T> new_values{mergeVectors(values,values_to_insert)};
+        pushes_nmbr_ = new_values.size();
+        values_to_insert.clear();
+        values_to_insert = std::move(new_values);
+        base_.setFuturesNumber(pushes_nmbr_);
+    } 
+    void clearValues()
+    {
+        values_to_insert.clear();
     }
 };
 
 template<typename T>
 class QueueTryPopPtr:
-    public QueueRefs<T>
+    public PendingObject<T,std::shared_ptr<T>>,
+    public QueueTesterEnabler<T,std::shared_ptr<T>>
 {
+    using PObject = PendingObject<T,std::shared_ptr<T>>;
+    using Enabler = QueueTesterEnabler<T,std::shared_ptr<T>>;
 private:
-    std::vector<std::promise<void>> try_pop_ptr_ready_list_;
-    std::vector<std::future<std::shared_ptr<T>>> try_pop_ptr_done_list_;
-private:
-void increaseTryPopPtrFutures(size_t n)
-{
-    try_pop_ptr_ready_list_.resize(n);
-    try_pop_ptr_done_list_.resize(n);
-}
+    QueueTester_base<T,std::shared_ptr<T>> base_;
+protected:
+    virtual std::shared_ptr<T> operation(size_t i)
+    {
+        return base_.queue_.tryPop();
+    }
 public:
     QueueTryPopPtr(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
-        QueueRefs<T>(queue, ready),
-        try_pop_ptr_ready_list_{},
-        try_pop_ptr_done_list_{}
+        PObject{base_},
+        Enabler{base_},
+        base_{queue, ready}
     {}
-    void enableTryPopPtr(size_t n)
-    {
-        increaseTryPopPtrFutures(n);
-        try
-        {
-            for(size_t i{0}; i < n; ++i)
-            {
-                
-                try_pop_ptr_done_list_[i] = std::async(std::launch::async,
-                                    [this,i]
-                                    {
-                                        try_pop_ptr_ready_list_[i].set_value();
-                                        QueueRefs<T>::ready_.wait();
-                                        return QueueRefs<T>::queue_.tryPop();
-                                    }
-                                );
-            }
-        }
-        catch(const std::exception& e)
-        {
-            errorInfo(e);
-            throw;
-        }
-    }
-    void waitForTryPopPtr()
-    {
-        try
-        {
-            for(auto& x: try_pop_ptr_ready_list_)
-                x.get_future().wait();
-        }
-        catch(const std::exception& e)
-        {
-            errorInfo(e);
-            throw;
-        } 
-    }
-    void getFuteres()
-    {
-        try
-        {
-            for(auto& x: try_pop_ptr_done_list_)
-                x.get();
-        }
-        catch(const std::exception& e)
-        {
-            errorInfo(e);
-            throw;
-        }
-    }
 };
 
 template<typename T>
 class QueueTryPopRef:
-    public QueueRefs<T>
+    public PendingObject<T,bool>,
+    public QueueTesterEnabler<T,bool>
 {
+    using PObject = PendingObject<T,bool>;
+    using Enabler = QueueTesterEnabler<T,bool>;
 private:
-    std::vector<std::promise<void>> try_pop_ref_ready_list_;
-    std::vector<std::future<bool>> try_pop_ref_done_list_;
-private:
-    void increaseTryPopRefFutures(size_t n)
+    QueueTester_base<T,bool> base_;
+protected:
+    virtual bool operation(size_t i)
     {
-        try_pop_ref_ready_list_.resize(n);
-        try_pop_ref_done_list_.resize(n);
+        T x;//ZMIENIC! , przeciążyć hooka!
+        return base_.queue_.tryPop(x);
     }
 public:
     QueueTryPopRef(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
-        QueueRefs<T>(queue, ready),
-        try_pop_ref_ready_list_{},
-        try_pop_ref_done_list_{}
+        PObject{base_},
+        Enabler{base_},
+        base_{queue, ready}
     {}
-    void enableTryPopRef(size_t n)
-    {
-        increaseTryPopRefFutures(n);
-        try
-        {
-            for(size_t i{0}; i < n; ++i)
-            {
-                
-                try_pop_ref_done_list_[i] = std::async(std::launch::async,
-                                    [this,i]
-                                    {
-                                        bool pred;
-                                        T x;
-                                        try_pop_ref_ready_list_[i].set_value();
-                                        QueueRefs<T>::ready_.wait();
-                                        pred =  QueueRefs<T>::queue_.tryPop(x);
-                                        return pred;
-                                    }
-                                );
-            }
-        }
-        catch(const std::exception& e)
-        {
-            errorInfo(e);
-            throw;
-        }
-    }
-    void waitForTryPopRef()
-    {
-        try
-        {
-            for(auto& x: try_pop_ref_ready_list_)
-                x.get_future().wait();
-        }
-        catch(const std::exception& e)
-        {
-            errorInfo(e);
-            throw;
-        } 
-    }
-    void getFuteres()
-    {
-        try
-        {
-            for(auto& x: try_pop_ref_done_list_)
-                x.get();
-        }
-        catch(const std::exception& e)
-        {
-            errorInfo(e);
-            throw;
-        }
-    }
 };
 
-//Facade
 template<typename T>
 class ThreadsafeQueueTest:
      public testing::Test
@@ -296,22 +239,22 @@ protected:
 
     void waitForSetAll()
     {
-        pusher_.waitForPush();
-        try_pop_ptr_.waitForTryPopPtr();
-        try_pop_ref_.waitForTryPopRef();
+        pusher_.wait();
+        try_pop_ptr_.wait();
+        try_pop_ref_.wait();
     }
     void setPushValues(std::vector<T> values)
     {
         pusher_.addValues(values);
-        pusher_.enablePushing();
+        pusher_.enable(values.size());
     }
     void setTryPopPtrInvocations(size_t n)
     {
-        try_pop_ptr_.enableTryPopPtr(n);
+        try_pop_ptr_.enable(n);
     }
     void setTryPopRefInvocations(size_t n)
     {
-        try_pop_ref_.enableTryPopRef(n);
+        try_pop_ref_.enable(n);
     }
     void runTest()
     {
@@ -325,7 +268,6 @@ protected:
         }
         catch(const std::exception& e)
         {
-            errorInfo(e);
             go_.set_value();
             throw;
         }
