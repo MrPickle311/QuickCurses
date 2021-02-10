@@ -71,3 +71,69 @@ bool StealingQueue::trySteal(DataType& data)
 
 //ThreadPool
 
+//public
+ThreadPool::ThreadPool():
+        done_{false},
+        joiner_{threads_}
+    {
+        size_t const thread_count {std::thread::hardware_concurrency()};
+
+        try
+        {
+            for(size_t i = 0; i < thread_count; ++i)
+                queues_.push_back(std::unique_ptr<StealingQueue> {new StealingQueue});
+            for(size_t i = 0; i < thread_count; ++i)
+                threads_.push_back(std::thread{&ThreadPool::workerThread,this,i});
+        }   
+        catch(...)
+        {
+            done_ = true;
+			throw;
+        }
+    }
+
+ThreadPool::~ThreadPool()
+    {
+        done_ = true;
+    }
+
+void ThreadPool::runPendingTask()
+{
+    TaskType task;
+    if(popTaskFromLocalQueue(task) ||
+        popTaskFromGlobalQueue(task) ||
+        popTaskFromOtherQueue(task))
+        task();
+    else std::this_thread::yield();
+}
+
+//private
+
+void ThreadPool::workerThread(size_t my_index)
+{
+        my_index_ = my_index;
+        local_queue_ = queues_[my_index].get();
+        while (!done_)//while !done , search new tasks to do
+            runPendingTask();
+}
+
+bool ThreadPool::popTaskFromLocalQueue(TaskType& task)
+{
+    return local_queue_ && local_queue_->tryPop(task);
+}
+
+bool ThreadPool::popTaskFromGlobalQueue(TaskType& task)
+{
+    return global_queue_.tryPop(task);
+}
+
+bool ThreadPool::popTaskFromOtherQueue(TaskType& task)
+{
+    for (size_t i {0}; i < queues_.size(); ++i)
+    {
+        size_t const index = (my_index_ + 1) % queues_.size(); //just shuffle
+        if(queues_[index]->trySteal(task))
+        return true;
+    }   
+}
+

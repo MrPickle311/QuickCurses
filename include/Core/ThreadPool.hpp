@@ -1,10 +1,6 @@
 #pragma once
-#include <thread>
 #include <queue>
-#include <mutex>
-#include <future>
-#include <condition_variable>
-#include <atomic>
+#include "ThreadsafeQueue.hpp"
 
 class ThreadJoiner
 {
@@ -81,6 +77,34 @@ class ThreadPool
     using LocalQueueType = std::queue<TaskType>;
 private:
     std::atomic_bool done_;
-    
+    ThreadsafeQueue<TaskType> global_queue_;
+    std::vector<std::unique_ptr<StealingQueue>> queues_;
+    std::vector<std::thread> threads_;
+    ThreadJoiner joiner_;
+
+    inline static thread_local StealingQueue* local_queue_;
+    inline static thread_local size_t my_index_;
+private:
+    void workerThread(size_t my_index);
+    bool popTaskFromLocalQueue(TaskType& task);
+    bool popTaskFromGlobalQueue(TaskType& task);
+    bool popTaskFromOtherQueue(TaskType& task);
+public:
+    //DODAĆ RĘCZNY WYBÓR ILOŚCI WĄTKÓW
+    ThreadPool();
+    virtual ~ThreadPool();
+    void runPendingTask();
+    template<typename FunctionType>
+    std::future<typename std::result_of<FunctionType()>::type> submit(FunctionType new_task)
+    {
+        typedef typename std::result_of<FunctionType()>::type ResultType;
+
+        std::packaged_task<ResultType()> task{std::move(new_task)};
+
+        std::future<ResultType> res{task.get_future()};
+
+        if(local_queue_) local_queue_->push(std::move(task));
+        else global_queue_->push(std::move(task));
+    }
 };
 

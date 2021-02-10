@@ -31,6 +31,64 @@ struct Printer<std::vector<std::pair<int,std::string>>>
     }
 };
 
+template <typename T>
+class DataGenerator
+{
+public:
+    std::vector<T> generate(size_t count) const;
+};
+
+template<>
+class DataGenerator<int>
+{
+public:
+    std::vector<int> generate(size_t count) const
+    {
+        std::vector<int> v;
+        v.resize(count);
+        for (size_t i = 0; i < count; ++i)
+           v.push_back(i);
+        return v;
+    }
+};
+
+template<>
+class DataGenerator<std::string>
+{
+public:
+    std::vector<std::string> generate(size_t count) const
+    {
+        std::vector<std::string> v;
+        v.reserve(count);
+        for (size_t i = 0; i < count; ++i)
+           v.push_back("string data");
+        return v;
+    }
+};
+
+template<>
+class DataGenerator<std::vector<std::pair<int,std::string>>>
+{
+public:
+    std::vector<std::vector<std::pair<int,std::string>>> generate(size_t count) const
+    {
+        std::vector<std::vector<std::pair<int,std::string>>> v;
+        v.reserve(count);
+        for (size_t i = 0; i < count; i++)
+        {
+            std::vector<std::pair<int,std::string>> v1;
+            v1.reserve(count / 4);
+            for (size_t i = 0; i < count / 4; i++)
+                v1.push_back(std::make_pair(4,std::to_string(i)));
+            v.push_back(v1);
+        }
+        return v;
+    }
+};
+
+
+
+
 template<typename T>
 std::vector<T> mergeVectors(const std::vector<T>& left_vector,const std::vector<T>& right_vector)
 {
@@ -45,8 +103,9 @@ std::vector<T> mergeVectors(const std::vector<T>& left_vector,const std::vector<
 }
 
 //all raw-data, direct access
+//ROZDZIELIĆ I UOGÓLNIĆ
 template<typename StoredType,typename MethodReturnedType>
-class QueueTester_base
+class TestingBase
 {
 private:
     //Main flags,comman data
@@ -57,18 +116,18 @@ private:
     std::vector<std::promise<void>> action_ready_list_;
     std::vector<std::future<MethodReturnedType>> action_done_list_;
 public:
-    QueueTester_base(ThreadsafeQueue<StoredType>& queue,std::shared_future<void>& ready):
+    TestingBase(ThreadsafeQueue<StoredType>& queue,std::shared_future<void>& ready):
         queue_{queue},
         ready_{ready},
         action_ready_list_{},
         action_done_list_{}
     {}
+    virtual ~TestingBase() {}
     virtual void setFuturesNumber(size_t number)
     {
         action_ready_list_.resize(number);
         action_done_list_.resize(number);
     }
-    virtual ~QueueTester_base() {}
     std::promise<void>& readyPromise(size_t number)
     {
         return action_ready_list_[number];
@@ -93,13 +152,14 @@ public:
     }
 };
 
-//i need to know types returned by queue
+//i should add some configuration flags in by structure
+
 //template-method
 template<typename StoredType,typename MethodReturnedType>
-class QueueTesterEnabler
+class AsyncEnabler
 {
 private:
-    QueueTester_base<StoredType,MethodReturnedType>& base_ref_;
+    TestingBase<StoredType,MethodReturnedType>& base_ref_;
 protected:
     virtual void printData() const //hook
     {}
@@ -109,9 +169,10 @@ protected:
     {}
     virtual MethodReturnedType operation(size_t i) = 0; //required to implementation by the others
 public:
-    QueueTesterEnabler(QueueTester_base<StoredType,MethodReturnedType>& base_ref):
+    AsyncEnabler(TestingBase<StoredType,MethodReturnedType>& base_ref):
         base_ref_{base_ref}
     {}
+    virtual ~AsyncEnabler() {}
     void enable(size_t iterations_nmbr)
     {
         try
@@ -139,18 +200,16 @@ public:
     }
 };
 
-//zastanów się nad metodą szablonową dla wszystkich try-catchy!
-//ale to jak skończę najpierw to 
-
 template<typename StoredType,typename MethodReturnedType>
 class PendingObject
 {
 private:
-    QueueTester_base<StoredType,MethodReturnedType>& base_ref_;
+    TestingBase<StoredType,MethodReturnedType>& base_ref_;
 public:
-    PendingObject(QueueTester_base<StoredType,MethodReturnedType>& base_ref):
+    PendingObject(TestingBase<StoredType,MethodReturnedType>& base_ref):
         base_ref_{base_ref}
     {}
+    virtual ~PendingObject() {}
     void wait()
     {
         try
@@ -181,15 +240,15 @@ public:
 template<typename T>
 class QueuePusher:
     public PendingObject<T,void>,
-    public QueueTesterEnabler<T,void>
+    public AsyncEnabler<T,void>
 {
     using PObject = PendingObject<T,void>;
-    using Enabler = QueueTesterEnabler<T,void>;
+    using Enabler = AsyncEnabler<T,void>;
 private:
     std::vector<T> values_to_insert;
     size_t pushes_nmbr_;
 
-    QueueTester_base<T,void> base_;
+    TestingBase<T,void> base_;
 protected:
     virtual void operation(size_t i)
     {
@@ -197,14 +256,10 @@ protected:
     }
     virtual void printData() const
     {
-        if constexpr(std::is_trivial<T>::value ||
-                     std::is_convertible<T,const char*>::value)
-        {
-            std::cout << "Values to insert: " << std::endl;
-            for(auto& e : values_to_insert)
-                std::cout << e << " ";
-        }
-        else std::cout << "Types too complicated to print,redefine it yourself";
+        Printer<T> printer;
+        std::cout << "Values push oto queue\n";
+        for(auto& e : values_to_insert)
+            printer(e);
         std::cout << std::endl;
     }
 public:
@@ -232,12 +287,12 @@ public:
 template<typename T>
 class QueueTryPopPtr:
     public PendingObject<T,std::shared_ptr<T>>,
-    public QueueTesterEnabler<T,std::shared_ptr<T>>
+    public AsyncEnabler<T,std::shared_ptr<T>>
 {
     using PObject = PendingObject<T,std::shared_ptr<T>>;
-    using Enabler = QueueTesterEnabler<T,std::shared_ptr<T>>;
+    using Enabler = AsyncEnabler<T,std::shared_ptr<T>>;
 private:
-    QueueTester_base<T,std::shared_ptr<T>> base_;
+    TestingBase<T,std::shared_ptr<T>> base_;
 protected:
     virtual std::shared_ptr<T> operation(size_t i)
     {
@@ -249,32 +304,45 @@ public:
         Enabler{base_},
         base_{queue, ready}
     {}
+    virtual ~QueueTryPopPtr() {}
 };
 
 template<typename T>
 class QueueTryPopRef:
     public PendingObject<T,bool>,
-    public QueueTesterEnabler<T,bool>
+    public AsyncEnabler<T,bool>
 {
     using PObject = PendingObject<T,bool>;
-    using Enabler = QueueTesterEnabler<T,bool>;
+    using Enabler = AsyncEnabler<T,bool>;
 private:
-    QueueTester_base<T,bool> base_;
-    std::set<T> values_from_queue_;
+    TestingBase<T,bool> base_;
+    std::vector<T> values_from_queue_;
+    std::mutex mutex_;
 protected:
     virtual bool operation(size_t i)
     {
+        Printer<T> printer;
         T x{};
         bool pred {base_.queue().tryPop(x)};
-        values_from_queue_.insert(std::move(x));
+        std::lock_guard<std::mutex> lock{mutex_};
+        if(pred) values_from_queue_.push_back(std::move(x));
         return pred;
     }
 public:
     QueueTryPopRef(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
         PObject{base_},
         Enabler{base_},
-        base_{queue, ready}
-    {}
+        base_{queue, ready},
+        values_from_queue_{},
+        mutex_{}
+    {
+        for(size_t i = 0; i < 1000; i++)
+            values_from_queue_.push_back(T{});
+    }   
+    virtual ~QueueTryPopRef() 
+    {
+
+    }
     void printValuesFromQueue() const
     {
         std::cout << "Values grabbed from queue\n";
@@ -305,7 +373,7 @@ protected:
         try_pop_ptr_{*queue_,ready_},
         try_pop_ref_{*queue_,ready_}
     {}
-
+    virtual ~ThreadsafeQueueTest() {}
     void waitForSetAll()
     {
         pusher_.wait();
@@ -370,30 +438,13 @@ TYPED_TEST_SUITE(ThreadsafeQueueTest,MyTypes);
 
 TYPED_TEST(ThreadsafeQueueTest,TryPopTest)
 {
-    std::vector<TypeParam> v;
-    if constexpr (std::is_same<TypeParam,int>::value)
-    {
-        for (size_t i = 0; i < 1000; i++)
-           v.push_back(i);
-    }
-    else if constexpr (std::is_same<TypeParam,std::string>::value)
-    {
-        for (size_t i = 0; i < 1000; i++)
-           v.push_back("str");
-    }
-    else if constexpr (std::is_same<TypeParam,std::vector<std::pair<int,std::string>>>::value)
-    {
-        std::pair<int,std::string> p{50,"str"};
-        std::vector<std::pair<int,std::string>> v1;
-        for (size_t i = 0; i < 1000; i++)
-            v1.push_back(p);
-        for (size_t i = 0; i < 1000; i++)
-           v.push_back(v1);
-    }
-    EXPECT_NO_THROW(this->setPushValues(v););
+    DataGenerator<TypeParam> g;
+    EXPECT_NO_THROW(this->setPushValues(g.generate(500)););
     EXPECT_NO_THROW(this->setTryPopPtrInvocations(300));
     EXPECT_NO_THROW(this->setTryPopRefInvocations(400));
+
     EXPECT_NO_THROW(this->runTest());
+
     EXPECT_NO_THROW(this->clearQueue());
     EXPECT_TRUE(this->queue_->empty());
     TypeParam checker;
