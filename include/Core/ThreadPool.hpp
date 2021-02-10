@@ -104,7 +104,7 @@ public:
         std::future<ResultType> res{task.get_future()};
 
         if(local_queue_) local_queue_->push(std::move(task));
-        else global_queue_->push(std::move(task));
+        else global_queue_.push(std::move(task));
     }
 };
 

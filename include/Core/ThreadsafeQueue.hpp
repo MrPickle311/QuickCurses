@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include <iostream>
+
 template<typename T>
 class ThreadsafeQueue
 {

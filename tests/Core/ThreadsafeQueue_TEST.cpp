@@ -1,240 +1,10 @@
 #include "../../include/Core/ThreadsafeQueue.hpp"
 #include <gtest/gtest.h>
-#include <iostream>
-#include <string>
-#include <list>
-#include <vector>
-#include <algorithm>
-#include <type_traits>
 #include <set>
-#include <functional>
+#include "TestingGoodies.hpp"
+#include "ConcurrentTestsEngine.hpp"
 
 //This code is simple, not fast because its test code
-
-//make specializations to print various types 
-template<typename T>
-struct Printer
-{
-    void operator() (const T& element)
-    {
-        std::cout << element << " ";
-    }
-};
-
-template<>
-struct Printer<std::vector<std::pair<int,std::string>>>
-{
-    void operator() (const std::vector<std::pair<int,std::string>>& element)
-    {
-        for(auto& e: element)
-            std::cout << "( " << e.first << " , " << e.second << " ) ";
-    }
-};
-
-template <typename T>
-class DataGenerator
-{
-public:
-    std::vector<T> generate(size_t count) const;
-};
-
-template<>
-class DataGenerator<int>
-{
-public:
-    std::vector<int> generate(size_t count) const
-    {
-        std::vector<int> v;
-        v.resize(count);
-        for (size_t i = 0; i < count; ++i)
-           v.push_back(i);
-        return v;
-    }
-};
-
-template<>
-class DataGenerator<std::string>
-{
-public:
-    std::vector<std::string> generate(size_t count) const
-    {
-        std::vector<std::string> v;
-        v.reserve(count);
-        for (size_t i = 0; i < count; ++i)
-           v.push_back("string data");
-        return v;
-    }
-};
-
-template<>
-class DataGenerator<std::vector<std::pair<int,std::string>>>
-{
-public:
-    std::vector<std::vector<std::pair<int,std::string>>> generate(size_t count) const
-    {
-        std::vector<std::vector<std::pair<int,std::string>>> v;
-        v.reserve(count);
-        for (size_t i = 0; i < count; i++)
-        {
-            std::vector<std::pair<int,std::string>> v1;
-            v1.reserve(count / 4);
-            for (size_t i = 0; i < count / 4; i++)
-                v1.push_back(std::make_pair(4,std::to_string(i)));
-            v.push_back(v1);
-        }
-        return v;
-    }
-};
-
-
-
-
-template<typename T>
-std::vector<T> mergeVectors(const std::vector<T>& left_vector,const std::vector<T>& right_vector)
-{
-    std::vector<T> new_values;
-    size_t const new_size {left_vector.size() + right_vector.size()};
-    new_values.resize(new_size);
-
-    auto ptr = std::copy(left_vector.begin(), left_vector.end(),new_values.begin());
-    std::copy(right_vector.begin(), right_vector.end(),ptr);
-    new_values.shrink_to_fit();
-    return new_values;
-}
-
-//all raw-data, direct access
-//ROZDZIELIĆ I UOGÓLNIĆ
-template<typename StoredType,typename MethodReturnedType>
-class TestingBase
-{
-private:
-    //Main flags,comman data
-    ThreadsafeQueue<StoredType>& queue_;
-    std::shared_future<void>& ready_;
-
-    //Action specified lists
-    std::vector<std::promise<void>> action_ready_list_;
-    std::vector<std::future<MethodReturnedType>> action_done_list_;
-public:
-    TestingBase(ThreadsafeQueue<StoredType>& queue,std::shared_future<void>& ready):
-        queue_{queue},
-        ready_{ready},
-        action_ready_list_{},
-        action_done_list_{}
-    {}
-    virtual ~TestingBase() {}
-    virtual void setFuturesNumber(size_t number)
-    {
-        action_ready_list_.resize(number);
-        action_done_list_.resize(number);
-    }
-    std::promise<void>& readyPromise(size_t number)
-    {
-        return action_ready_list_[number];
-    }
-    std::future<MethodReturnedType>& doneFuture(size_t number)
-    {
-        return action_done_list_[number];
-    }
-    ThreadsafeQueue<StoredType>& queue()
-    {
-        return queue_;
-    }
-    std::shared_future<void>& readyIndicator()
-    {
-        return ready_;
-    }
-    size_t iterationsCount() const
-    {
-        if(action_done_list_.size() != action_done_list_.size())
-            throw std::runtime_error("action_done_list_.size() != action_done_list_.size()");
-        return action_done_list_.size();
-    }
-};
-
-//i should add some configuration flags in by structure
-
-//template-method
-template<typename StoredType,typename MethodReturnedType>
-class AsyncEnabler
-{
-private:
-    TestingBase<StoredType,MethodReturnedType>& base_ref_;
-protected:
-    virtual void printData() const //hook
-    {}
-    virtual void prepareData() //hook
-    {}
-    virtual void workload() //hook
-    {}
-    virtual MethodReturnedType operation(size_t i) = 0; //required to implementation by the others
-public:
-    AsyncEnabler(TestingBase<StoredType,MethodReturnedType>& base_ref):
-        base_ref_{base_ref}
-    {}
-    virtual ~AsyncEnabler() {}
-    void enable(size_t iterations_nmbr)
-    {
-        try
-        {
-            base_ref_.setFuturesNumber(iterations_nmbr);
-            printData(); 
-            for(size_t i{0}; i < iterations_nmbr; ++i)
-            {
-                base_ref_.doneFuture(i) = std::async(std::launch::async,
-                                        [this,i]
-                                        {
-                                            prepareData();
-                                            base_ref_.readyPromise(i).set_value(); 
-                                            base_ref_.readyIndicator().wait();
-                                            workload(); 
-                                            return operation(i);
-                                        }
-                                    );
-            }
-        }
-        catch(...)
-        {
-            throw;
-        }
-    }
-};
-
-template<typename StoredType,typename MethodReturnedType>
-class PendingObject
-{
-private:
-    TestingBase<StoredType,MethodReturnedType>& base_ref_;
-public:
-    PendingObject(TestingBase<StoredType,MethodReturnedType>& base_ref):
-        base_ref_{base_ref}
-    {}
-    virtual ~PendingObject() {}
-    void wait()
-    {
-        try
-        {
-            for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
-                base_ref_.readyPromise(i).get_future().wait();
-        }
-        catch(...)
-        {
-            throw;
-        }
-    }
-    void getFuteres()
-    {
-        try
-        {
-            for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
-                base_ref_.doneFuture(i).get();
-        }
-        catch(...)
-        {
-            throw;
-        }
-    }
-};
 
 //queue.push() returns void
 template<typename T>
@@ -316,7 +86,7 @@ class QueueTryPopRef:
     using Enabler = AsyncEnabler<T,bool>;
 private:
     TestingBase<T,bool> base_;
-    std::vector<T> values_from_queue_;
+    std::set<T> values_from_queue_;
     std::mutex mutex_;
 protected:
     virtual bool operation(size_t i)
@@ -325,7 +95,7 @@ protected:
         T x{};
         bool pred {base_.queue().tryPop(x)};
         std::lock_guard<std::mutex> lock{mutex_};
-        if(pred) values_from_queue_.push_back(std::move(x));
+        if(pred) values_from_queue_.insert(std::move(x));
         return pred;
     }
 public:
@@ -335,10 +105,7 @@ public:
         base_{queue, ready},
         values_from_queue_{},
         mutex_{}
-    {
-        for(size_t i = 0; i < 1000; i++)
-            values_from_queue_.push_back(T{});
-    }   
+    {}   
     virtual ~QueueTryPopRef() 
     {
 

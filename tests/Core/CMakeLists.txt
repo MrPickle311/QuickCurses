@@ -8,12 +8,13 @@ else()
     message(FATAL_ERROR "GTest not found!")
 endif()
 
-if(NOT (DEFINED TestFile)) 
-    message(FATAL_ERROR "CMake testing syntax error: TestFile not defined!")
+if(NOT (DEFINED TestFiles)) 
+    message(FATAL_ERROR "CMake testing syntax error: TestFiles not defined!")
 endif()
 
 set(TestLibs
     ThreadsafeQueue_TEST.cpp
+    ThreadPool_TEST.cpp
     )
 
 set(CMAKE_CXX_STANDARD 17)
@@ -48,7 +49,9 @@ macro(package_add_test_lib TESTNAME FILES LIBRARIES)
     set_target_properties(${TESTNAME} PROPERTIES FOLDER Core)
 endmacro()
 
-if (TestFile STREQUAL "ThreadsafeQueue")
+foreach(file ${TestFiles})
+    message("The following file will be tested : " ${file})
     message("Creating test...")
-    package_add_test(ThreadsafeQueue_TEST ThreadsafeQueue_TEST.cpp)
-endif()
+    package_add_test(${file}_TEST ${file}_TEST.cpp)
+endforeach()
+
