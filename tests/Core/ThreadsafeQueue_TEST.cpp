@@ -6,8 +6,30 @@
 #include <vector>
 #include <algorithm>
 #include <type_traits>
+#include <set>
+#include <functional>
 
 //This code is simple, not fast because its test code
+
+//make specializations to print various types 
+template<typename T>
+struct Printer
+{
+    void operator() (const T& element)
+    {
+        std::cout << element << " ";
+    }
+};
+
+template<>
+struct Printer<std::vector<std::pair<int,std::string>>>
+{
+    void operator() (const std::vector<std::pair<int,std::string>>& element)
+    {
+        for(auto& e: element)
+            std::cout << "( " << e.first << " , " << e.second << " ) ";
+    }
+};
 
 template<typename T>
 std::vector<T> mergeVectors(const std::vector<T>& left_vector,const std::vector<T>& right_vector)
@@ -26,7 +48,7 @@ std::vector<T> mergeVectors(const std::vector<T>& left_vector,const std::vector<
 template<typename StoredType,typename MethodReturnedType>
 class QueueTester_base
 {
-public:
+private:
     //Main flags,comman data
     ThreadsafeQueue<StoredType>& queue_;
     std::shared_future<void>& ready_;
@@ -34,7 +56,7 @@ public:
     //Action specified lists
     std::vector<std::promise<void>> action_ready_list_;
     std::vector<std::future<MethodReturnedType>> action_done_list_;
-
+public:
     QueueTester_base(ThreadsafeQueue<StoredType>& queue,std::shared_future<void>& ready):
         queue_{queue},
         ready_{ready},
@@ -47,6 +69,28 @@ public:
         action_done_list_.resize(number);
     }
     virtual ~QueueTester_base() {}
+    std::promise<void>& readyPromise(size_t number)
+    {
+        return action_ready_list_[number];
+    }
+    std::future<MethodReturnedType>& doneFuture(size_t number)
+    {
+        return action_done_list_[number];
+    }
+    ThreadsafeQueue<StoredType>& queue()
+    {
+        return queue_;
+    }
+    std::shared_future<void>& readyIndicator()
+    {
+        return ready_;
+    }
+    size_t iterationsCount() const
+    {
+        if(action_done_list_.size() != action_done_list_.size())
+            throw std::runtime_error("action_done_list_.size() != action_done_list_.size()");
+        return action_done_list_.size();
+    }
 };
 
 //i need to know types returned by queue
@@ -61,6 +105,8 @@ protected:
     {}
     virtual void prepareData() //hook
     {}
+    virtual void workload() //hook
+    {}
     virtual MethodReturnedType operation(size_t i) = 0; //required to implementation by the others
 public:
     QueueTesterEnabler(QueueTester_base<StoredType,MethodReturnedType>& base_ref):
@@ -70,21 +116,23 @@ public:
     {
         try
         {
+            base_ref_.setFuturesNumber(iterations_nmbr);
             printData(); 
             for(size_t i{0}; i < iterations_nmbr; ++i)
             {
-                base_ref_.action_done_list_[i] = std::async(std::launch::async,
+                base_ref_.doneFuture(i) = std::async(std::launch::async,
                                         [this,i]
                                         {
                                             prepareData();
-                                            base_ref_.action_ready_list_[i].set_value(); 
-                                            base_ref_.ready_.wait(); 
+                                            base_ref_.readyPromise(i).set_value(); 
+                                            base_ref_.readyIndicator().wait();
+                                            workload(); 
                                             return operation(i);
                                         }
                                     );
             }
         }
-        catch(const std::exception& e)
+        catch(...)
         {
             throw;
         }
@@ -107,8 +155,8 @@ public:
     {
         try
         {
-            for(auto& x: base_ref_.action_ready_list_)
-                x.get_future().wait();
+            for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
+                base_ref_.readyPromise(i).get_future().wait();
         }
         catch(...)
         {
@@ -119,8 +167,8 @@ public:
     {
         try
         {
-            for(auto& x: base_ref_.action_done_list_)
-                x.get();
+            for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
+                base_ref_.doneFuture(i).get();
         }
         catch(...)
         {
@@ -145,7 +193,19 @@ private:
 protected:
     virtual void operation(size_t i)
     {
-        base_.queue_.push(values_to_insert[i]);
+        base_.queue().push(values_to_insert[i]);
+    }
+    virtual void printData() const
+    {
+        if constexpr(std::is_trivial<T>::value ||
+                     std::is_convertible<T,const char*>::value)
+        {
+            std::cout << "Values to insert: " << std::endl;
+            for(auto& e : values_to_insert)
+                std::cout << e << " ";
+        }
+        else std::cout << "Types too complicated to print,redefine it yourself";
+        std::cout << std::endl;
     }
 public:
     QueuePusher(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
@@ -162,7 +222,6 @@ public:
         pushes_nmbr_ = new_values.size();
         values_to_insert.clear();
         values_to_insert = std::move(new_values);
-        base_.setFuturesNumber(pushes_nmbr_);
     } 
     void clearValues()
     {
@@ -182,7 +241,7 @@ private:
 protected:
     virtual std::shared_ptr<T> operation(size_t i)
     {
-        return base_.queue_.tryPop();
+        return base_.queue().tryPop();
     }
 public:
     QueueTryPopPtr(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
@@ -201,11 +260,14 @@ class QueueTryPopRef:
     using Enabler = QueueTesterEnabler<T,bool>;
 private:
     QueueTester_base<T,bool> base_;
+    std::set<T> values_from_queue_;
 protected:
     virtual bool operation(size_t i)
     {
-        T x;//ZMIENIC! , przeciążyć hooka!
-        return base_.queue_.tryPop(x);
+        T x{};
+        bool pred {base_.queue().tryPop(x)};
+        values_from_queue_.insert(std::move(x));
+        return pred;
     }
 public:
     QueueTryPopRef(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
@@ -213,6 +275,13 @@ public:
         Enabler{base_},
         base_{queue, ready}
     {}
+    void printValuesFromQueue() const
+    {
+        std::cout << "Values grabbed from queue\n";
+        Printer<T> printer;
+        for(auto& e: values_from_queue_)
+            printer(e);
+    }
 };
 
 template<typename T>
@@ -266,7 +335,7 @@ protected:
             try_pop_ptr_.getFuteres();
             try_pop_ref_.getFuteres();
         }
-        catch(const std::exception& e)
+        catch(...)
         {
             go_.set_value();
             throw;
