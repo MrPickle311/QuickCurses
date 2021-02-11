@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <set>
 #include "TestingGoodies.hpp"
-#include "ConcurrentTestsEngine.hpp"
+#include "AsyncTestsEngine.hpp"
 
 //This code is simple, not fast because its test code
 

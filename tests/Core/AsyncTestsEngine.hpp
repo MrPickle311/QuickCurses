@@ -4,9 +4,42 @@
 #include <thread>
 #include <mutex>
 
+//zastosować uogólnionego buildera do tworzenia wstępnie skonfigurowanego obiektu
+//szczególnie jeśli brak domyślnego konstruktora
+
+struct Single{};
+struct Collection{};
+
+template<typename StoredObject,typename ... Args>
+class ObjectBuilder
+{
+public:
+    StoredObject build(Args... args)//place here constructor arguements
+    {
+        return StoredObject{args...};
+    }
+};
+
+template<typename StoredObject>
+class ObjectWrapper
+{
+private:
+    StoredObject obj_;
+public:
+    template<typename... Args>
+    SingleObjectWrapper(Args... args):
+        obj_{args...}
+    {}
+    ~SingleObjectWrapper(){}
+    StoredObject& getObject()
+    {
+        return obj_;
+    }
+};
+
 //all raw-data, direct access
 //ROZDZIELIĆ I UOGÓLNIĆ
-template<typename StoredType,typename MethodReturnedType>
+template<typename StoredType,typename OperationReturnType>
 class TestingBase
 {
 private:
@@ -16,7 +49,7 @@ private:
 
     //Action specified lists
     std::vector<std::promise<void>> action_ready_list_;
-    std::vector<std::future<MethodReturnedType>> action_done_list_;
+    std::vector<std::future<OperationReturnType>> action_done_list_;
 public:
     TestingBase(ThreadsafeQueue<StoredType>& queue,std::shared_future<void>& ready):
         queue_{queue},
@@ -34,7 +67,7 @@ public:
     {
         return action_ready_list_[number];
     }
-    std::future<MethodReturnedType>& doneFuture(size_t number)
+    std::future<OperationReturnType>& doneFuture(size_t number)
     {
         return action_done_list_[number];
     }
@@ -57,11 +90,11 @@ public:
 //i should add some configuration flags in by structure
 
 //template-method
-template<typename StoredType,typename MethodReturnedType>
+template<typename StoredType,typename OperationReturnType>
 class AsyncEnabler
 {
 private:
-    TestingBase<StoredType,MethodReturnedType>& base_ref_;
+    TestingBase<StoredType,OperationReturnType>& base_ref_;
 protected:
     virtual void printData() const //hook
     {}
@@ -69,9 +102,9 @@ protected:
     {}
     virtual void workload() //hook
     {}
-    virtual MethodReturnedType operation(size_t i) = 0; //required to implementation by the others
+    virtual OperationReturnType operation(size_t i) = 0; //required to implementation by the others
 public:
-    AsyncEnabler(TestingBase<StoredType,MethodReturnedType>& base_ref):
+    AsyncEnabler(TestingBase<StoredType,OperationReturnType>& base_ref):
         base_ref_{base_ref}
     {}
     virtual ~AsyncEnabler() {}
@@ -102,13 +135,13 @@ public:
     }
 };
 
-template<typename StoredType,typename MethodReturnedType>
+template<typename StoredType,typename OperationReturnType>
 class PendingObject
 {
 private:
-    TestingBase<StoredType,MethodReturnedType>& base_ref_;
+    TestingBase<StoredType,OperationReturnType>& base_ref_;
 public:
-    PendingObject(TestingBase<StoredType,MethodReturnedType>& base_ref):
+    PendingObject(TestingBase<StoredType,OperationReturnType>& base_ref):
         base_ref_{base_ref}
     {}
     virtual ~PendingObject() {}
