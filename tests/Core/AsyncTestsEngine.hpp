@@ -57,6 +57,7 @@ public:
         action_ready_list_{},
         action_done_list_{}
     {}
+public:
     virtual ~AsyncTestingBase() {}
     virtual void setFuturesNumber(size_t number)
     {
@@ -71,15 +72,16 @@ public:
     {
         return action_done_list_[number];
     }
-    std::shared_future<void>& readyIndicator()
-    {
-        return ready_;
-    }
     size_t iterationsCount() const
     {
         if(action_done_list_.size() != action_done_list_.size())
             throw std::runtime_error("action_done_list_.size() != action_done_list_.size()");
         return action_done_list_.size();
+    }
+public:
+    std::shared_future<void>& readyIndicator()
+    {
+        return ready_;
     }
 };
 
@@ -191,7 +193,7 @@ public:
     {
         Enabler::enable(count);
     }
-    TestedObject& object()
+    TestedObject& testedObject()
     {
         return obj_.getObject();
     }
@@ -205,6 +207,14 @@ private:
     std::promise<void> go_;
     std::shared_future<void> ready_;
     ObjectWrapper<TestedObject> wrapper_;
+    std::atomic_bool run_flag_;
+private:
+    void setFlags()
+    {
+        if(!testHasStarted())
+            go_.set_value();
+        run_flag_ = true;
+    }
 protected:
     virtual void clearOperations(){} //hook
     virtual void otherOperations(){} //hook
@@ -213,7 +223,8 @@ public:
     AsyncTest(Args... args):
         wrapper_{args...},//argument types must be deduced
         go_{},
-        ready_{go_.get_future()}
+        ready_{go_.get_future()},
+        run_flag_{false}
     {}
     virtual ~AsyncTest() {}
     //template-method
@@ -221,14 +232,16 @@ public:
     {
         try
         {
+            if(testHasStarted())
+                throw std::runtime_error("Test is already running!\n");
             wait();
-            go_.set_value();
+            setFlags();
             getFutures();
             otherOperations();
         }
         catch(...)
         {
-            go_.set_value();
+            setFlags();
             clearOperations();
             throw;
         }
@@ -241,6 +254,10 @@ public:
     ObjectWrapper<TestedObject>& getWrapper()
     {
         return wrapper_;
+    }
+    bool testHasStarted() const
+    {
+        return run_flag_;
     }
     virtual void wait() = 0;
     virtual void getFutures() = 0;
