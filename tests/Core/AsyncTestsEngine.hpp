@@ -10,10 +10,11 @@
 struct Single{};
 struct Collection{};
 
-template<typename StoredObject,typename ... Args>
+template<typename StoredObject>
 class ObjectBuilder
 {
 public:
+    template<typename ... Args>
     static StoredObject build(Args... args)//place here constructor arguements
     {
         return StoredObject{args...};
@@ -27,10 +28,10 @@ private:
     StoredObject obj_;
 public:
     template<typename... Args>
-    SingleObjectWrapper(Args... args):
-        obj_{ObjectBuilder::build<StoredObject,Args...>(args...)}
+    ObjectWrapper(Args... args):
+        obj_{ObjectBuilder<StoredObject>::build(args...)}
     {}
-    ~SingleObjectWrapper(){}
+    ~ObjectWrapper(){}
     StoredObject& getObject()
     {
         return obj_;
@@ -38,10 +39,9 @@ public:
 };
 
 //all raw-data, direct access
-//ROZDZIELIĆ I UOGÓLNIĆ
 template<typename StoredObject,
          typename OperationReturnType>
-class TestingBase
+class AsyncTestingBase
 {
 private:
     //Main flags,comman data
@@ -52,13 +52,12 @@ private:
     std::vector<std::future<OperationReturnType>> action_done_list_;
 public:
     template<typename... Args>
-    TestingBase(std::shared_future<void>& ready,Args... args):
-        obj_wrapper_{args...},
+    AsyncTestingBase(std::shared_future<void>& ready):
         ready_{ready},
         action_ready_list_{},
         action_done_list_{}
     {}
-    virtual ~TestingBase() {}
+    virtual ~AsyncTestingBase() {}
     virtual void setFuturesNumber(size_t number)
     {
         action_ready_list_.resize(number);
@@ -92,7 +91,7 @@ template<typename StoredObject,typename OperationReturnType>
 class AsyncEnabler
 {
 private:
-    TestingBase<StoredObject,OperationReturnType>& base_ref_;
+    AsyncTestingBase<StoredObject,OperationReturnType>& base_ref_;
 protected:
     virtual void printData() const //hook
     {}
@@ -101,8 +100,8 @@ protected:
     virtual void workload() //hook
     {}
     virtual OperationReturnType operation(size_t i) = 0; //required to implementation by the others
-public:
-    AsyncEnabler(TestingBase<StoredObject,OperationReturnType>& base_ref):
+protected:
+    AsyncEnabler(AsyncTestingBase<StoredObject,OperationReturnType>& base_ref):
         base_ref_{base_ref}
     {}
     virtual ~AsyncEnabler() {}
@@ -137,9 +136,9 @@ template<typename StoredObject,typename OperationReturnType>
 class PendingObject
 {
 private:
-    TestingBase<StoredObject,OperationReturnType>& base_ref_;
+    AsyncTestingBase<StoredObject,OperationReturnType>& base_ref_;
 public:
-    PendingObject(TestingBase<StoredObject,OperationReturnType>& base_ref):
+    PendingObject(AsyncTestingBase<StoredObject,OperationReturnType>& base_ref):
         base_ref_{base_ref}
     {}
     virtual ~PendingObject() {}
@@ -175,25 +174,74 @@ class TestedOperation:
     public PendingObject<TestedObject,OperationReturnType>,
     public AsyncEnabler<TestedObject,OperationReturnType>
 {
-private:
     using PObject = PendingObject<TestedObject,OperationReturnType>;
     using Enabler = AsyncEnabler<TestedObject,OperationReturnType>;
 private:
-    TestingBase<TestedObject,OperationReturnType>& base_;
-protected:
-    virtual OperationReturnType operation (size_t count)
-    {
-z
-    }
+    AsyncTestingBase<TestedObject,OperationReturnType> base_;
+    ObjectWrapper<TestedObject>& obj_;
 public:
-    TestedOperation(TestingBase<TestedObject,OperationReturnType>& base):
+    TestedOperation(ObjectWrapper<TestedObject>& obj,
+                    std::shared_future<void>& ready):
         PObject{base_},
         Enabler{base_},
-        base_{base}
+        base_{ready},
+        obj_{obj}
     {}
     void setInvocationsCount(size_t count)
     {
         Enabler::enable(count);
     }
+    TestedObject& object()
+    {
+        return obj_.getObject();
+    }
     virtual ~TestedOperation() {}
+};
+
+template<typename TestedObject>
+class AsyncTest
+{
+private:
+    std::promise<void> go_;
+    std::shared_future<void> ready_;
+    ObjectWrapper<TestedObject> wrapper_;
+protected:
+    virtual void clearOperations(){} //hook
+    virtual void otherOperations(){} //hook
+public:
+    template<typename... Args>
+    AsyncTest(Args... args):
+        wrapper_{args...},//argument types must be deduced
+        go_{},
+        ready_{go_.get_future()}
+    {}
+    virtual ~AsyncTest() {}
+    //template-method
+    void runTest()
+    {
+        try
+        {
+            wait();
+            go_.set_value();
+            getFutures();
+            otherOperations();
+        }
+        catch(...)
+        {
+            go_.set_value();
+            clearOperations();
+            throw;
+        }
+        
+    }
+    std::shared_future<void>& getReadyIndicator()
+    {
+        return ready_;
+    }
+    ObjectWrapper<TestedObject>& getWrapper()
+    {
+        return wrapper_;
+    }
+    virtual void wait() = 0;
+    virtual void getFutures() = 0;
 };
