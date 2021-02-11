@@ -14,7 +14,7 @@ template<typename StoredObject,typename ... Args>
 class ObjectBuilder
 {
 public:
-    StoredObject build(Args... args)//place here constructor arguements
+    static StoredObject build(Args... args)//place here constructor arguements
     {
         return StoredObject{args...};
     }
@@ -28,7 +28,7 @@ private:
 public:
     template<typename... Args>
     SingleObjectWrapper(Args... args):
-        obj_{args...}
+        obj_{ObjectBuilder::build<StoredObject,Args...>(args...)}
     {}
     ~SingleObjectWrapper(){}
     StoredObject& getObject()
@@ -39,20 +39,21 @@ public:
 
 //all raw-data, direct access
 //ROZDZIELIĆ I UOGÓLNIĆ
-template<typename StoredType,typename OperationReturnType>
+template<typename StoredObject,
+         typename OperationReturnType>
 class TestingBase
 {
 private:
     //Main flags,comman data
-    ThreadsafeQueue<StoredType>& queue_;
     std::shared_future<void>& ready_;
 
     //Action specified lists
     std::vector<std::promise<void>> action_ready_list_;
     std::vector<std::future<OperationReturnType>> action_done_list_;
 public:
-    TestingBase(ThreadsafeQueue<StoredType>& queue,std::shared_future<void>& ready):
-        queue_{queue},
+    template<typename... Args>
+    TestingBase(std::shared_future<void>& ready,Args... args):
+        obj_wrapper_{args...},
         ready_{ready},
         action_ready_list_{},
         action_done_list_{}
@@ -71,10 +72,6 @@ public:
     {
         return action_done_list_[number];
     }
-    ThreadsafeQueue<StoredType>& queue()
-    {
-        return queue_;
-    }
     std::shared_future<void>& readyIndicator()
     {
         return ready_;
@@ -90,11 +87,12 @@ public:
 //i should add some configuration flags in by structure
 
 //template-method
-template<typename StoredType,typename OperationReturnType>
+//independ from TestingBase
+template<typename StoredObject,typename OperationReturnType>
 class AsyncEnabler
 {
 private:
-    TestingBase<StoredType,OperationReturnType>& base_ref_;
+    TestingBase<StoredObject,OperationReturnType>& base_ref_;
 protected:
     virtual void printData() const //hook
     {}
@@ -104,7 +102,7 @@ protected:
     {}
     virtual OperationReturnType operation(size_t i) = 0; //required to implementation by the others
 public:
-    AsyncEnabler(TestingBase<StoredType,OperationReturnType>& base_ref):
+    AsyncEnabler(TestingBase<StoredObject,OperationReturnType>& base_ref):
         base_ref_{base_ref}
     {}
     virtual ~AsyncEnabler() {}
@@ -135,13 +133,13 @@ public:
     }
 };
 
-template<typename StoredType,typename OperationReturnType>
+template<typename StoredObject,typename OperationReturnType>
 class PendingObject
 {
 private:
-    TestingBase<StoredType,OperationReturnType>& base_ref_;
+    TestingBase<StoredObject,OperationReturnType>& base_ref_;
 public:
-    PendingObject(TestingBase<StoredType,OperationReturnType>& base_ref):
+    PendingObject(TestingBase<StoredObject,OperationReturnType>& base_ref):
         base_ref_{base_ref}
     {}
     virtual ~PendingObject() {}
@@ -169,4 +167,33 @@ public:
             throw;
         }
     }
+};
+
+//base to inherit or specialise
+template<typename TestedObject,typename OperationReturnType>
+class TestedOperation:
+    public PendingObject<TestedObject,OperationReturnType>,
+    public AsyncEnabler<TestedObject,OperationReturnType>
+{
+private:
+    using PObject = PendingObject<TestedObject,OperationReturnType>;
+    using Enabler = AsyncEnabler<TestedObject,OperationReturnType>;
+private:
+    TestingBase<TestedObject,OperationReturnType>& base_;
+protected:
+    virtual OperationReturnType operation (size_t count)
+    {
+z
+    }
+public:
+    TestedOperation(TestingBase<TestedObject,OperationReturnType>& base):
+        PObject{base_},
+        Enabler{base_},
+        base_{base}
+    {}
+    void setInvocationsCount(size_t count)
+    {
+        Enabler::enable(count);
+    }
+    virtual ~TestedOperation() {}
 };

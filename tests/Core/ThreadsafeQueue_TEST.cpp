@@ -7,22 +7,23 @@
 //This code is simple, not fast because its test code
 
 //queue.push() returns void
+//stworzyć metodę szablonową/strategię jako wrappera na każdą operację
 template<typename T>
 class QueuePusher:
-    public PendingObject<T,void>,
-    public AsyncEnabler<T,void>
+    public PendingObject<ThreadsafeQueue<T>,void>,
+    public AsyncEnabler<ThreadsafeQueue<T>,void>
 {
-    using PObject = PendingObject<T,void>;
-    using Enabler = AsyncEnabler<T,void>;
+    using PObject = PendingObject<ThreadsafeQueue<T>,void>;
+    using Enabler = AsyncEnabler<ThreadsafeQueue<T>,void>
 private:
     std::vector<T> values_to_insert;
     size_t pushes_nmbr_;
 
-    TestingBase<T,void> base_;
+    TestingBase<ThreadsafeQueue<T>,void>& base_;
 protected:
     virtual void operation(size_t i)
     {
-        base_.queue().push(values_to_insert[i]);
+        base_.getObject().push(values_to_insert[i]);
     }
     virtual void printData() const
     {
@@ -33,10 +34,10 @@ protected:
         std::cout << std::endl;
     }
 public:
-    QueuePusher(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
+    QueuePusher(TestingBase<ThreadsafeQueue<T>>& base):
         PObject{base_},
         Enabler{base_},
-        base_{queue,ready},
+        base_{base},
         values_to_insert{},
         pushes_nmbr_{0}
     {}
@@ -62,17 +63,17 @@ class QueueTryPopPtr:
     using PObject = PendingObject<T,std::shared_ptr<T>>;
     using Enabler = AsyncEnabler<T,std::shared_ptr<T>>;
 private:
-    TestingBase<T,std::shared_ptr<T>> base_;
+    TestingBase<ThreadsafeQueue<T>,void>& base_;
 protected:
     virtual std::shared_ptr<T> operation(size_t i)
     {
-        return base_.queue().tryPop();
+        return base_.getObject().tryPop();
     }
 public:
-    QueueTryPopPtr(ThreadsafeQueue<T>& queue,std::shared_future<void>& ready):
+    QueueTryPopPtr(TestingBase<ThreadsafeQueue<T>,void>& base):
         PObject{base_},
         Enabler{base_},
-        base_{queue, ready}
+        base_{base}
     {}
     virtual ~QueueTryPopPtr() {}
 };
