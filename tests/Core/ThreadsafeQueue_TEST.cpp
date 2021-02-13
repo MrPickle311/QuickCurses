@@ -32,9 +32,8 @@ protected:
         }
     }
 public:
-    QueuePusher(ObjectWrapper<ThreadsafeQueue<T>>& wrapper,
-        std::shared_future<void>& ready):
-        Operation{wrapper,ready},
+    QueuePusher(CommonSystemObjects<ThreadsafeQueue<T>>& system_objects_):
+        Operation{system_objects_},
         values_to_insert_{},
         pushes_nmbr_{0},
         verbose_{true}
@@ -70,9 +69,8 @@ protected:
         return Operation::testedObject().tryPop();
     }
 public:
-    QueueTryPopPtr(ObjectWrapper<ThreadsafeQueue<T>>& wrapper,
-        std::shared_future<void>& ready):
-        Operation{wrapper,ready}
+    QueueTryPopPtr(CommonSystemObjects<ThreadsafeQueue<T>>& system_objects_):
+        Operation{system_objects_}
     {}
     virtual ~QueueTryPopPtr() {}
 };
@@ -96,9 +94,8 @@ protected:
         return pred;
     }
 public:
-    QueueTryPopRef(ObjectWrapper<ThreadsafeQueue<T>>& wrapper,
-        std::shared_future<void>& ready):
-        Operation{wrapper,ready},
+    QueueTryPopRef(CommonSystemObjects<ThreadsafeQueue<T>>& system_objects_):
+        Operation{system_objects_},
         values_from_queue_{},
         mutex_{}
     {}   
@@ -127,9 +124,8 @@ protected:
         std::this_thread::sleep_for(std::chrono::milliseconds(4));
     }
 public:
-    QueueClear(ObjectWrapper<ThreadsafeQueue<T>>& wrapper,
-        std::shared_future<void>& ready):
-        Operation{wrapper,ready}
+    QueueClear(CommonSystemObjects<ThreadsafeQueue<T>>& system_objects_):
+        Operation{system_objects_}
     {}
     virtual ~QueueClear() {}
 };
@@ -145,9 +141,8 @@ protected:
         Operation::testedObject().empty();
     } 
 public:
-    QueueEmpty(ObjectWrapper<ThreadsafeQueue<T>>& wrapper,
-        std::shared_future<void>& ready):
-        Operation{wrapper,ready}
+    QueueEmpty(CommonSystemObjects<ThreadsafeQueue<T>>& system_objects_):
+        Operation{system_objects_}
     {}
     virtual ~QueueEmpty() {}
 };
@@ -163,9 +158,8 @@ protected:
         return Operation::testedObject().waitAndPop();
     }
 public:
-    QueueWaitPopPtr(ObjectWrapper<ThreadsafeQueue<T>>& wrapper,
-        std::shared_future<void>& ready):
-        Operation{wrapper,ready}
+    QueueWaitPopPtr(CommonSystemObjects<ThreadsafeQueue<T>>& system_objects_):
+        Operation{system_objects_}
     {}
     virtual ~QueueWaitPopPtr() {}
 };
@@ -182,9 +176,8 @@ protected:
         return Operation::testedObject().waitAndPop(x);
     }
 public:
-    QueueWaitPopRef(ObjectWrapper<ThreadsafeQueue<T>>& wrapper,
-        std::shared_future<void>& ready):
-        Operation{wrapper,ready}
+    QueueWaitPopRef(CommonSystemObjects<ThreadsafeQueue<T>>& system_objects_):
+        Operation{system_objects_}
     {}
     virtual ~QueueWaitPopRef() {}
 };
@@ -205,26 +198,26 @@ protected:
 
     AsyncThreadsafeQueueTest():
         AsyncTest<ThreadsafeQueue<T>>{},
-        pusher_{AsyncBase::getWrapper(),AsyncBase::getReadyIndicator()},
-        try_pop_ptr_{AsyncBase::getWrapper(),AsyncBase::getReadyIndicator()},
-        try_pop_ref_{AsyncBase::getWrapper(),AsyncBase::getReadyIndicator()},
-        wait_pop_ptr_{AsyncBase::getWrapper(),AsyncBase::getReadyIndicator()},
-        wait_pop_ref_{AsyncBase::getWrapper(),AsyncBase::getReadyIndicator()},
-        clear_{AsyncBase::getWrapper(),AsyncBase::getReadyIndicator()}
+        pusher_{AsyncBase::joinToSystem()},
+        try_pop_ptr_{AsyncBase::joinToSystem()},
+        try_pop_ref_{AsyncBase::joinToSystem()},
+        wait_pop_ptr_{AsyncBase::joinToSystem()},
+        wait_pop_ref_{AsyncBase::joinToSystem()},
+        clear_{AsyncBase::joinToSystem()}
     {}
     virtual ~AsyncThreadsafeQueueTest() {}
     virtual void wait() 
     {
-        pusher_.wait();
-        try_pop_ptr_.wait();
-        try_pop_ref_.wait();
-        wait_pop_ref_.wait();
-        wait_pop_ptr_.wait();
-        clear_.wait();
+        pusher_.waitForOperationsReadyToStart();
+        try_pop_ptr_.waitForOperationsReadyToStart();
+        try_pop_ref_.waitForOperationsReadyToStart();
+        wait_pop_ref_.waitForOperationsReadyToStart();
+        wait_pop_ptr_.waitForOperationsReadyToStart();
+        clear_.waitForOperationsReadyToStart();
     }
     virtual void getFutures() 
     {
-        pusher_.getFuteres();
+        pusher_.waitForOperationsResults();
     }
     void addValues(std::vector<T> values)
     {

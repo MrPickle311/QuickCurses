@@ -7,9 +7,6 @@
 //zastosować uogólnionego buildera do tworzenia wstępnie skonfigurowanego obiektu
 //szczególnie jeśli brak domyślnego konstruktora
 
-struct Single{};
-struct Collection{};
-
 template<typename StoredObject>
 class ObjectBuilder
 {
@@ -38,62 +35,110 @@ public:
     }
 };
 
+template<typename TestedObject>
+class CommonSystemObjects
+{
+private:
+    std::shared_future<void> system_ready_indicator_;
+    ObjectWrapper<TestedObject> tested_object_wrapper_;
+public:
+    template<typename... Args>
+    CommonSystemObjects(std::promise<void>& go_indicator,Args... args):
+    system_ready_indicator_{go_indicator.get_future()},
+        tested_object_wrapper_{args...}//argument types must be deduced
+    {}
+    std::shared_future<void>& getSystemReadyIndicator()
+    {
+        return system_ready_indicator_;
+    }
+    void waitForSystemReady()
+    {
+        system_ready_indicator_.wait();
+    }
+    ObjectWrapper<TestedObject>& getWrapper()
+    {
+        return tested_object_wrapper_;
+    }
+};
+
+template<typename TestedObject>
+using SystemChannel = CommonSystemObjects<TestedObject>&;
+
 //all raw-data, direct access
-template<typename StoredObject,
+template<typename TestedObject,
          typename OperationReturnType>
-class AsyncTestingBase
+class TestedOperationBase
 {
 private:
     //Main flags,comman data
-    std::shared_future<void>& ready_;
+    CommonSystemObjects<TestedObject>& system_objects_;
 
     //Action specified lists
-    std::vector<std::promise<void>> action_ready_list_;
-    std::vector<std::future<OperationReturnType>> action_done_list_;
+    std::vector<std::promise<void>> operations_ready_;
+    std::vector<std::future<OperationReturnType>> operations_done_;
+private:
+    void checkInvariants() const
+    {
+        if(operations_done_.size() != operations_done_.size())
+            throw std::runtime_error("action_done_list_.size() != action_done_list_.size()");
+    }
 public:
     template<typename... Args>
-    AsyncTestingBase(std::shared_future<void>& ready):
-        ready_{ready},
-        action_ready_list_{},
-        action_done_list_{}
+    TestedOperationBase(CommonSystemObjects<TestedObject>& system_objects):
+        system_objects_{system_objects},
+        operations_ready_{},
+        operations_done_{}
     {}
-public:
-    virtual ~AsyncTestingBase() {}
-    virtual void setFuturesNumber(size_t number)
+    virtual ~TestedOperationBase() {}
+    virtual void setOperationsNumber(size_t number)
     {
-        action_ready_list_.resize(number);
-        action_done_list_.resize(number);
+        operations_ready_.resize(number);
+        operations_done_.resize(number);
     }
-    std::promise<void>& readyPromise(size_t number)
+    std::promise<void>& operationReady(size_t number)
     {
-        return action_ready_list_[number];
+        return operations_ready_[number];
     }
-    std::future<OperationReturnType>& doneFuture(size_t number)
+    std::future<OperationReturnType>& operationDone(size_t number)
     {
-        return action_done_list_[number];
+        return operations_done_[number];
     }
-    size_t iterationsCount() const
+    size_t getOperationsCount() const
     {
-        if(action_done_list_.size() != action_done_list_.size())
-            throw std::runtime_error("action_done_list_.size() != action_done_list_.size()");
-        return action_done_list_.size();
+        checkInvariants();
+        return operations_done_.size();
     }
-public:
-    std::shared_future<void>& readyIndicator()
+    CommonSystemObjects<TestedObject>& getSystemCommononObjects()
     {
-        return ready_;
+        return system_objects_;
     }
 };
 
 //i should add some configuration flags in by structure
 
+template<typename TestedObject,typename OperationReturnType>
+class Base
+{
+
+};
+
+template<typename TestedObject,typename OperationReturnType>
+class EngineComponent
+{
+private:
+    TestedOperationBase<TestedObject,OperationReturnType>& base_;
+public:
+    EngineComponent(){}
+    virtual ~EngineComponent() {}
+};
+
 //template-method
 //independ from TestingBase
-template<typename StoredObject,typename OperationReturnType>
+template<typename TestedObject,typename OperationReturnType>
 class AsyncEnabler
 {
 private:
-    AsyncTestingBase<StoredObject,OperationReturnType>& base_ref_;
+    TestedOperationBase<TestedObject,OperationReturnType>& base_;
 protected:
     virtual void printData() const //hook
     {}
@@ -103,70 +148,50 @@ protected:
     {}
     virtual OperationReturnType operation(size_t i) = 0; //required to implementation by the others
 protected:
-    AsyncEnabler(AsyncTestingBase<StoredObject,OperationReturnType>& base_ref):
-        base_ref_{base_ref}
+    AsyncEnabler(TestedOperationBase<TestedObject,OperationReturnType>& base):
+        base_{base}
     {}
     virtual ~AsyncEnabler() {}
-    void enable(size_t iterations_nmbr)
+    void prepareOperations(size_t iterations_nmbr)
     {
-        try
+        base_.setOperationsNumber(iterations_nmbr);
+        printData(); 
+        for(size_t i{0}; i < iterations_nmbr; ++i)
         {
-            base_ref_.setFuturesNumber(iterations_nmbr);
-            printData(); 
-            for(size_t i{0}; i < iterations_nmbr; ++i)
-            {
-                base_ref_.doneFuture(i) = std::async(std::launch::async,
-                                        [this,i]
-                                        {
-                                            prepareData();
-                                            base_ref_.readyPromise(i).set_value(); 
-                                            base_ref_.readyIndicator().wait();
-                                            workload(); 
-                                            return operation(i);
-                                        }
-                                    );
-            }
-        }
-        catch(...)
-        {
-            throw;
+            base_.operationDone(i) = std::async(std::launch::async,
+                                    [this,i]
+                                    {
+                                        prepareData();
+                                        base_.operationReady(i).set_value(); 
+                                        base_.getSystemCommononObjects().//przebudować te funkcje
+                                              waitForSystemReady();//na jedną funkcję c
+                                        workload();                         //czekającą
+                                        return operation(i);
+                                    }
+                                );
         }
     }
 };
 
-template<typename StoredObject,typename OperationReturnType>
+template<typename TestedObject,typename OperationReturnType>
 class PendingObject
 {
 private:
-    AsyncTestingBase<StoredObject,OperationReturnType>& base_ref_;
+    TestedOperationBase<TestedObject,OperationReturnType>& base_;
 public:
-    PendingObject(AsyncTestingBase<StoredObject,OperationReturnType>& base_ref):
-        base_ref_{base_ref}
+    PendingObject(TestedOperationBase<TestedObject,OperationReturnType>& base):
+        base_{base}
     {}
     virtual ~PendingObject() {}
-    void wait()
+    void waitForOperationsReadyToStart()
     {
-        try
-        {
-            for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
-                base_ref_.readyPromise(i).get_future().wait();
-        }
-        catch(...)
-        {
-            throw;
-        }
+        for(size_t i{0} ; i < base_.getOperationsCount() ; ++i)
+            base_.operationReady(i).get_future().wait();
     }
-    void getFuteres()
+    void waitForOperationsResults()
     {
-        try
-        {
-            for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
-                base_ref_.doneFuture(i).get();
-        }
-        catch(...)
-        {
-            throw;
-        }
+        for(size_t i{0} ; i < base_.getOperationsCount() ; ++i)
+            base_.operationDone(i).get();
     }
 };
 
@@ -179,23 +204,22 @@ class TestedOperation:
     using PObject = PendingObject<TestedObject,OperationReturnType>;
     using Enabler = AsyncEnabler<TestedObject,OperationReturnType>;
 private:
-    AsyncTestingBase<TestedObject,OperationReturnType> base_;
-    ObjectWrapper<TestedObject>& obj_;
+    TestedOperationBase<TestedObject,OperationReturnType> base_;
+    CommonSystemObjects<TestedObject>& system_objects_;
 public:
-    TestedOperation(ObjectWrapper<TestedObject>& obj,
-                    std::shared_future<void>& ready):
+    TestedOperation(CommonSystemObjects<TestedObject>& system_objects):
         PObject{base_},
         Enabler{base_},
-        base_{ready},
-        obj_{obj}
+        system_objects_{system_objects},
+        base_{system_objects_}
     {}
     void setInvocationsCount(size_t count)
     {
-        Enabler::enable(count);
+        Enabler::prepareOperations(count);
     }
     TestedObject& testedObject()
     {
-        return obj_.getObject();
+        return system_objects_.getWrapper().getObject();
     }
     virtual ~TestedOperation() {}
 };
@@ -204,15 +228,18 @@ template<typename TestedObject>
 class AsyncTest
 {
 private:
-    std::promise<void> go_;
-    std::shared_future<void> ready_;
-    ObjectWrapper<TestedObject> wrapper_;
+    std::promise<void> start_system_indicator_;
     std::atomic_bool run_flag_;
+    CommonSystemObjects<TestedObject> system_objects_;
 private:
+    void unlockThreads()
+    {
+        start_system_indicator_.set_value();
+    }
     void setFlags()
     {
-        if(!testHasStarted())
-            go_.set_value();
+        if(!isTestExecutued())
+            unlockThreads();
         run_flag_ = true;
     }
 protected:
@@ -221,10 +248,10 @@ protected:
 public:
     template<typename... Args>
     AsyncTest(Args... args):
-        wrapper_{args...},//argument types must be deduced
-        go_{},
-        ready_{go_.get_future()},
-        run_flag_{false}
+        start_system_indicator_{},
+        run_flag_{false},
+        system_objects_{start_system_indicator_,
+                        args...}//TestedObject constructor arguments, like emplace
     {}
     virtual ~AsyncTest() {}
     //template-method
@@ -232,7 +259,7 @@ public:
     {
         try
         {
-            if(testHasStarted())
+            if(isTestExecutued())
                 throw std::runtime_error("Test is already running!\n");
             wait();
             setFlags();
@@ -243,22 +270,18 @@ public:
         {
             setFlags();
             clearOperations();
-            throw;
+            throw;//re-throw to gtest EXPECT_THROW/NO_THROW
         }
         
     }
-    std::shared_future<void>& getReadyIndicator()
-    {
-        return ready_;
-    }
-    ObjectWrapper<TestedObject>& getWrapper()
-    {
-        return wrapper_;
-    }
-    bool testHasStarted() const
+    bool isTestExecutued() const
     {
         return run_flag_;
     }
+    CommonSystemObjects<TestedObject>& joinToSystem()
+    {
+        return system_objects_;
+    }
     virtual void wait() = 0;
-    virtual void getFutures() = 0;
+    virtual void getFutures() = 0;//zmiana nazwy
 };
