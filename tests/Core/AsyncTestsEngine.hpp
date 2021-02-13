@@ -63,6 +63,7 @@ public:
     {
         action_ready_list_.resize(number);
         action_done_list_.resize(number);
+        //DAJ TUTAJ GET_FUTURE!
     }
     std::promise<void>& readyPromise(size_t number)
     {
@@ -109,10 +110,9 @@ protected:
     virtual ~AsyncEnabler() {}
     void enable(size_t iterations_nmbr)
     {
-        try
-        {
+            std::cout << "OperationReturnType enable" << std::endl;
             base_ref_.setFuturesNumber(iterations_nmbr);
-            printData(); 
+            printData();
             for(size_t i{0}; i < iterations_nmbr; ++i)
             {
                 base_ref_.doneFuture(i) = std::async(std::launch::async,
@@ -126,11 +126,6 @@ protected:
                                         }
                                     );
             }
-        }
-        catch(...)
-        {
-            throw;
-        }
     }
 };
 
@@ -146,27 +141,15 @@ public:
     virtual ~PendingObject() {}
     void wait()
     {
-        try
-        {
+            std::cout << "PendingObject wait" << std::endl;
             for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
                 base_ref_.readyPromise(i).get_future().wait();
-        }
-        catch(...)
-        {
-            throw;
-        }
     }
     void getFuteres()
     {
-        try
-        {
+            std::cout << "PendingObject getFuteres" << std::endl;
             for(size_t i{0} ; i < base_ref_.iterationsCount() ; ++i)
                 base_ref_.doneFuture(i).get();
-        }
-        catch(...)
-        {
-            throw;
-        }
     }
 };
 

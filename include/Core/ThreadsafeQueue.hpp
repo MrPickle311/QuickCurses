@@ -24,10 +24,6 @@ private:
     
     std::condition_variable data_condition_;
 private:
-    bool headIsTail() const
-    {
-        return head_.get() == tail_;
-    }
     Node* getTail()
     {
         std::lock_guard<std::mutex> lock{tail_mutex_};
@@ -42,8 +38,8 @@ private:
     std::unique_lock<std::mutex> waitForData()
     {
         std::unique_lock<std::mutex> lock{head_mutex_};
-        data_condition_.wait(lock,[&] {return !headIsTail();});
-        return lock;
+        data_condition_.wait(lock,[&] {return head_.get() != getTail();});
+        return std::move(lock);//DAJ std::move()
     }
     std::unique_ptr<Node> waitPopHead()
     {
@@ -59,13 +55,13 @@ private:
     std::unique_ptr<Node> tryPopHead()
     {
         std::lock_guard<std::mutex> guard {head_mutex_};
-        if (headIsTail()) return nullptr;
+        if (head_.get() == getTail()) return nullptr;//return std::unique_ptr<Node>{};
         return popHead();
     }
     std::unique_ptr<Node> tryPopHead(T& value)
     {
         std::lock_guard<std::mutex>  guard{head_mutex_};
-        if (headIsTail()) return nullptr;
+        if (head_.get() == getTail()) return nullptr;//return std::unique_ptr<Node>{};
         value = std::move(*head_->data_);
         return popHead(); 
     }
@@ -86,12 +82,13 @@ public:
 
         //rebindings
         {
-            //dangerous!
-            Node* const temp_node = tail_ptr.get();
             //lock
             std::lock_guard<std::mutex> lock{tail_mutex_};
-            //rebindings operations
             tail_->data_ = new_value_ptr;
+            //dangerous!
+            Node* const temp_node = tail_ptr.get();
+            //rebindings operations
+            
             tail_->next_ = std::move(tail_ptr);
             tail_ = temp_node;
         }
@@ -110,22 +107,22 @@ public:
     std::shared_ptr<T> tryPop()
     {
         std::unique_ptr<Node> old_head {tryPopHead()};
-        return old_head ? old_head->data_ : nullptr;
+        return old_head ? old_head->data_ : nullptr;////return std::shared_ptr<T>{};
     }
     bool tryPop(T& value)
     {
         std::unique_ptr<Node> const old_head {tryPopHead(value)};
-        return old_head != nullptr;
+        return (bool)old_head;
     }
-    bool empty() const
+    bool empty()
     {
         std::lock_guard<std::mutex> lock{head_mutex_};
-        return headIsTail();
+        return (head_.get() == getTail());
     }
     void clear()
     {
-        std::lock_guard<std::mutex> lock{tail_mutex_};
-        while(!headIsTail())
-            tryPopHead();    
+        //std::scoped_lock sc{tail_mutex_,head_mutex_};
+       // while(!(head_.get() == tail_))
+          //  popHead();    
     }
 };

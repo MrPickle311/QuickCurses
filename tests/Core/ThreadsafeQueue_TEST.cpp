@@ -258,59 +258,112 @@ protected:
 
 
 
-TEST(SingleCoreThreadsafeQueueTest,InvariantQueueTest)
-{
-    ThreadsafeQueue<int> queue;
-    EXPECT_TRUE(queue.empty());
-    EXPECT_NO_THROW(queue.tryPop());
-    EXPECT_NO_THROW(queue.clear());
-    queue.push(5);
-    queue.push(6);
-    queue.push(8);
-    queue.push(67);
-    int a;
-    queue.tryPop(a);
-    EXPECT_EQ(a,5);
-    queue.waitAndPop(a);
-    EXPECT_EQ(a,6);
-    queue.waitAndPop(a);
-    EXPECT_EQ(a,8);
-    queue.tryPop(a);
-    EXPECT_EQ(a,67);
-}
+// TEST(SingleCoreThreadsafeQueueTest,InvariantQueueTest)
+// {
+//     ThreadsafeQueue<int> queue;
+//     std::cout << "single start\n";
+//     EXPECT_TRUE(queue.empty());
+//     std::cout << "single start1\n";
+//     EXPECT_NO_THROW(queue.tryPop());
+//     std::cout << "single start2\n";
+//     EXPECT_NO_THROW(queue.clear());
+//     std::cout << "single start3\n";
+//     queue.push(5);
+//     queue.push(6);
+//     queue.push(8);
+//     queue.push(67);
+//     int a;
+//     queue.tryPop(a);
+//     EXPECT_EQ(a,5);
+//     queue.waitAndPop(a);
+//     EXPECT_EQ(a,6);
+//     queue.waitAndPop(a);
+//     EXPECT_EQ(a,8);
+//     queue.tryPop(a);
+//     EXPECT_EQ(a,67);
+//     std::cout << "single end\n";
+// }
 
-using MyTypes = testing::Types<int,std::string>;
-TYPED_TEST_SUITE(AsyncThreadsafeQueueTest,MyTypes);
+// using MyTypes = testing::Types<int,std::string>;
+// TYPED_TEST_SUITE(AsyncThreadsafeQueueTest,MyTypes);
 
-TYPED_TEST(AsyncThreadsafeQueueTest,QueueTestWithClear)
-{
-    this->setVerbose(false);
-    DataGenerator<TypeParam> g;
-    this->addValues(g.generate(500));
+// // TYPED_TEST(AsyncThreadsafeQueueTest,QueueTestWithClear)
+// // {
+// //     this->setVerbose(false);
+// //     DataGenerator<TypeParam> g;
+// //     this->addValues(g.generate(1));
 
-    EXPECT_NO_THROW(this->tryPopPtr(300));
-    EXPECT_NO_THROW(this->tryPopRef(300));
-    EXPECT_NO_THROW(this->clear(30));
+// //     EXPECT_NO_THROW(this->tryPopPtr(3));
+// //     EXPECT_NO_THROW(this->tryPopRef(1));
+// //     EXPECT_NO_THROW(this->clear(30));
 
-    EXPECT_NO_THROW(this->runTest());
-}
+// //     EXPECT_NO_THROW(this->runTest());
+// // }
 
-TYPED_TEST(AsyncThreadsafeQueueTest,QueueTestWithoutClear)
-{
-    this->setVerbose(false);
-    DataGenerator<TypeParam> g;
-    this->addValues(g.generate(5000));
+// TYPED_TEST(AsyncThreadsafeQueueTest,QueueTestWithoutClear)
+// {
+//     this->setVerbose(false);
+//     DataGenerator<TypeParam> g;
+//     this->addValues(g.generate(1));
 
-    EXPECT_NO_THROW(this->tryPopPtr(600));
-    EXPECT_NO_THROW(this->tryPopRef(600));
-    EXPECT_NO_THROW(this->waitPopPtr(600));
-    EXPECT_NO_THROW(this->waitPopRef(600));
+//     //EXPECT_NO_THROW(this->tryPopPtr(600));//dodaj jesze 600x5000 w pętli
+//     EXPECT_NO_THROW(this->tryPopRef(1));
+//     //EXPECT_NO_THROW(this->waitPopPtr(60));
+//     //EXPECT_NO_THROW(this->waitPopRef(60));
 
-    EXPECT_NO_THROW(this->runTest());
-}
+//     EXPECT_NO_THROW(this->runTest());
+// }
 
 int main(int argc, char **argv)
 {
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
+    ThreadsafeQueue<int> queue;
+    
+    std::promise<void> go;
+    std::shared_future<void> ready{go.get_future()};
+
+    std::vector<std::promise<void>> push_ready_list_;
+    std::vector<std::future<void>> push_done_list_;
+
+    std::vector<std::promise<std::string>> pop_ready_list_;
+    std::vector<std::future<bool>> pop_done_list_;
+
+    push_ready_list_.resize(5);
+    push_done_list_.resize(5);
+    pop_ready_list_.resize(5);
+    pop_done_list_.resize(5);
+
+    for (size_t i = 0; i < 5; i++)
+    {
+        push_done_list_[i] = std::async(std::launch::async,[&]
+        {
+            //wektory nie są atomowe ani wielowątkowe,więc wątki napierdalają się o to 
+            //by tam na chama wjebać dane,szczególnie gdy wektorki zasuwają na
+            //iteratorach
+            push_ready_list_[i].set_value();
+            ready.wait();
+            queue.push(5);
+        });
+        pop_done_list_[i] = std::async(std::launch::async,[&]
+        {
+            int a;
+            pop_ready_list_[i].set_value("xd");
+            ready.wait();
+            return queue.tryPop(a);
+        });
+    }
+
+
+    for (size_t i = 0; i < 5; i++)
+    {
+        push_ready_list_[i].get_future().wait();
+        pop_ready_list_[i].get_future().wait();
+    }
+    go.set_value();
+    for (size_t i = 0; i < 5; i++)
+    {
+        push_done_list_[i].get();
+        pop_done_list_[i].get();
+    }
+    //::testing::InitGoogleTest(&argc, argv);
+    //return RUN_ALL_TESTS();
 }
