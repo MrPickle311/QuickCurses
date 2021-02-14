@@ -1,6 +1,9 @@
 message("Core")
-set_target_properties(Core PROPERTIES LINKER_LANGUAGE CXX)
 find_package(GTest REQUIRED)
+find_package(TBB REQUIRED tbb)
+if(TBB_FOUND)
+    message("TBB Found!")
+endif()
 
 if(${GTEST_FOUND})
     enable_testing()
@@ -17,9 +20,31 @@ set(TestLibs
     ThreadPool_TEST.cpp
     )
 
+set(LIBRARIES
+    ${GTEST_LIBRARIES}
+    ${TBB_IMPORTED_TARGETS} 
+)
+
+add_library(AsyncEngine
+            AsyncTestsEngine.hpp)
+set_target_properties(AsyncEngine PROPERTIES LINKER_LANGUAGE CXX)
+set(TestLibs
+    ThreadsafeQueue_TEST.cpp
+    ThreadPool_TEST.cpp
+    )
+
+set(LIBRARIES
+    ${GTEST_LIBRARIES}
+    ${TBB_IMPORTED_TARGETS} 
+)
+target_link_libraries(AsyncEngine ${LIBRARIES} pthread)
+
 set(CMAKE_CXX_STANDARD 17)
 
-include_directories(../../include/Core ${GTEST_INCLUDE_DIRS})
+include_directories(../../include/Core 
+                    ${GTEST_INCLUDE_DIRS}
+
+                   )
 
 #przyspieszenie kompilacji
 find_program(CCACHE_PROGRAM ccache)
@@ -30,7 +55,7 @@ endif()
 
 macro(package_add_test TESTNAME FILES)
     add_executable(${TESTNAME} ${FILES})
-    target_link_libraries(${TESTNAME} ${GTEST_LIBRARIES}  pthread)
+    target_link_libraries(${TESTNAME}  ${LIBRARIES} pthread)
     gtest_discover_tests(${TESTNAME}
                         WORKING_DIRECTORY ${PROJECT_DIR} #dont change , very pretty file structure
                         PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
