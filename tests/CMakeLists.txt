@@ -1,4 +1,5 @@
 message("Tests")
 if(${TestModule} STREQUAL "Core")
     add_subdirectory(Core)
+    add_subdirectory(asyncTestEngine)
 endif()

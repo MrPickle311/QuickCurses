@@ -1,10 +1,5 @@
 message("Core")
 find_package(GTest REQUIRED)
-find_package(TBB REQUIRED tbb)
-if(TBB_FOUND)
-    message("TBB Found!")
-endif()
-
 if(${GTEST_FOUND})
     enable_testing()
 else()
@@ -15,6 +10,10 @@ if(NOT (DEFINED TestFiles))
     message(FATAL_ERROR "CMake testing syntax error: TestFiles not defined!")
 endif()
 
+set(LIBRARIES
+    ${GTEST_LIBRARIES}
+)
+
 set(TestLibs
     ThreadsafeQueue_TEST.cpp
     ThreadPool_TEST.cpp
@@ -22,29 +21,14 @@ set(TestLibs
 
 set(LIBRARIES
     ${GTEST_LIBRARIES}
-    ${TBB_IMPORTED_TARGETS} 
 )
-
-add_library(AsyncEngine
-            AsyncTestsEngine.hpp)
-set_target_properties(AsyncEngine PROPERTIES LINKER_LANGUAGE CXX)
-set(TestLibs
-    ThreadsafeQueue_TEST.cpp
-    ThreadPool_TEST.cpp
-    )
-
-set(LIBRARIES
-    ${GTEST_LIBRARIES}
-    ${TBB_IMPORTED_TARGETS} 
-)
-target_link_libraries(AsyncEngine ${LIBRARIES} pthread)
 
 set(CMAKE_CXX_STANDARD 17)
 
 include_directories(../../include/Core 
                     ${GTEST_INCLUDE_DIRS}
-
                    )
+link_libraries(${GTEST_LIBRARIES} pthread)
 
 #przyspieszenie kompilacji
 find_program(CCACHE_PROGRAM ccache)

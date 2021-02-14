@@ -46,6 +46,7 @@ set(SOURCES
 
 set(INCLUDE_DIRS
     include/Core
+    include/asyncTestEngine
     ${CURSES_INCLUDE_DIRS}
     )
 
