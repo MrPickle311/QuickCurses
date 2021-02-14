@@ -1,13 +1,14 @@
 message("Engine")
 find_package(GTest REQUIRED)
 find_package(TBB REQUIRED tbb)
+
 if(${GTEST_FOUND})
     message("FOUND GTEST INT ENGINE")
     enable_testing()
 else()
     message(FATAL_ERROR "GTest not found!!!")
 endif()
-
+set(CMAKE_CXX_STANDARD 17)
 #link_libraries(GTest::GTest GTest::Main)
 #add_library(AsyncEngine STATIC)
 #target_sources(AsyncEngine PUBLIC ThreadsafeHashTable.hpp)
