@@ -77,10 +77,54 @@ void testDataRacePresence()
         t.join();
 }
 
-
 TEST(TableTest,AsyncSimpleTest)
 {
     EXPECT_NO_THROW(testDataRacePresence());    
+}
+
+struct Wrapper
+{
+private:
+    ThreadsafeHashTable<int,int> table_;
+public:
+    Wrapper(size_t buckets_number):
+        table_{buckets_number}
+    {}
+    ThreadsafeHashTable<int,int>& getTable()
+    {
+        return table_;
+    }
+};
+
+void pushWithWrapper(std::shared_future<void>& future,
+          Wrapper& wrapper,
+          int key)
+{
+    future.wait();
+    wrapper.getTable().addOrUpdateMapping(key,6);
+    wrapper.getTable().removeMapping(key-1);
+    wrapper.getTable().valueFor(key+1);
+}
+
+void testDataRacePresenceWithWrapper()
+{
+    Wrapper wrapper{40};
+    std::vector<std::thread> v;
+    v.reserve(10);
+    std::promise<void> promise;
+    std::shared_future<void> future{promise.get_future()};
+
+    for(size_t i{0};i < 10;++i)
+        v.emplace_back(pushWithWrapper,std::ref(future),std::ref(wrapper),i);
+    std::this_thread::sleep_for(std::chrono::seconds{1});
+    promise.set_value();
+    for(auto& t : v)
+        t.join();
+}
+
+TEST(TableTest,WrapperTest)
+{
+    EXPECT_NO_THROW(testDataRacePresenceWithWrapper());    
 }
 
 int main(int argc, char **argv)

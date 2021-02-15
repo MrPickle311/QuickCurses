@@ -6,7 +6,7 @@ set(TestLibs
     )
 
 if(${TestModule} STREQUAL "All")
-    set(TestFiles "${TestLibs}")
+    set(TestFiles ${TestLibs})
 else()
     checkTestFilesAreDefined()
 endif()

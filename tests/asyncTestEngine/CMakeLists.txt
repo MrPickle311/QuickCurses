@@ -2,6 +2,7 @@ message("Loading tests/asyncTestEngine module...")
  
 set(TestLibs
     ThreadsafeHashTable
+    AsyncTestEngine
     )
 
 if(${TestModule} STREQUAL "All")
@@ -23,4 +24,4 @@ set(EXTRA_LIBRARIES
 include_directories(${GTEST_INCLUDE_DIRS})
 link_libraries(${GTEST_LIBRARIES} pthread)
 
-buildTests(${TestFiles})
+buildTests("${TestFiles}")
