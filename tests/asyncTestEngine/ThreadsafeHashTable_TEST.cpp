@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include "../../extern/sigslot/signal.hpp"
 #include <iostream>
+#include <future>
 
 //SILNIK SYGNAŁÓW NA BAZIE TEGO KONTENERA
 template<typename Key,typename Value>
@@ -51,19 +52,41 @@ TEST(TableTest,InvariantTest)
 void testDataRacePresence()
 {
     ThreadsafeHashTable<int,int> table{40};
-
+    std::thread th1{&ThreadsafeHashTable<int,int>::addOrUpdateMapping,&table,56,54};
+    std::thread th2{&ThreadsafeHashTable<int,int>::addOrUpdateMapping,&table,565,54};
+    th1.join();
+    th2.join();
 }
 
-void f()
+void f(int h)
 {
-    std::cout << "XDXXDXD" << std::endl;
+    std::cout << "XDXXDXD 1 " << h << std::endl;
 }
+
+void j(int h)
+{
+    std::cout << "XDXXDXD " << h << std::endl;
+}
+
+void g(sigslot::signal<int>& sig)
+{
+    sig(6);
+}
+
+template<typename... Args>
+using Signal = sigslot::signal<Args...>;
 
 int main(int argc, char **argv)
 {
-    sigslot::signal<> sig;
-    sig.connect(f);
-    sig();
+    Signal<int> sig;
+    auto c = sig.connect(j);
+    c.block();
+    sig(6);
+    c.unblock();
+    sig(7);
+    c.connected();
+    c.valid();
+    testDataRacePresence();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

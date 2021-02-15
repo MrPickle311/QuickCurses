@@ -13,12 +13,11 @@ if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
 endif()
 
-message("Looking for libraries...")
+message("Looking for REQUIRED libraries...")
 find_package(Curses REQUIRED)
-find_package(GTest REQUIRED)
 
-set(EXTERNAL_PACKAGES_LIST "GTest" "ncurses" "curses" )
-set(FIND_COMMANDS "GTEST_FOUND" "NCURSES_FOUND" "CURSES_FOUND")
+set(EXTERNAL_PACKAGES_LIST  "ncurses" "curses" )
+set(FIND_COMMANDS  "NCURSES_FOUND" "CURSES_FOUND")
 
 list(LENGTH EXTERNAL_PACKAGES_LIST PACKAGES_NMBR)
 list(LENGTH FIND_COMMANDS COMMANDS_NMBR)
@@ -67,7 +66,7 @@ target_link_libraries(QuickCurses
 target_link_directories(QuickCurses PUBLIC
                         ${INCLUDE_DIRS}
                         )
-
+#CHANGE IT!!!
 if("true")
     add_subdirectory(tests)
 endif()

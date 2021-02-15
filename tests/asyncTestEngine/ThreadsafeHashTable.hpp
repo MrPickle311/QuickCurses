@@ -26,7 +26,7 @@ private:
                                                             {return item.first == key;}); 
         }
 
-        BucketConstIterator findEntryFor(Key const& key) const //for non-modyfing operations
+        BucketConstIterator findConstEntryFor(Key const& key) const //for non-modyfing operations
         {
             return std::find_if(data_.begin(), data_.end(),[&](BucketValue const& item)
                                                             {return item.first == key;});  
@@ -36,7 +36,7 @@ private:
         Value valueFor(Key const& key,Value const& default_value) const//no data-race -> const at the end
         {
             std::shared_lock<std::shared_mutex> lock{mutex_};//shared-lock -> safe shared access
-            BucketConstIterator found_entry {findEntryFor(key)};
+            BucketConstIterator found_entry {findConstEntryFor(key)};
             return (found_entry == data_.cend() ? default_value : found_entry->second);
         }
 

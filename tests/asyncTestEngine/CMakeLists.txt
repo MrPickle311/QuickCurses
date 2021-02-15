@@ -1,26 +1,26 @@
-message("Engine")
-find_package(GTest REQUIRED)
-find_package(TBB REQUIRED tbb)
+message("Loading tests/asyncTestEngine module...")
+ 
+set(TestLibs
+    ThreadsafeHashTable
+    )
 
-if(${GTEST_FOUND})
-    message("FOUND GTEST INT ENGINE")
-    enable_testing()
+if(${TestModule} STREQUAL "All")
+    set(TestFiles ${TestLibs})
 else()
-    message(FATAL_ERROR "GTest not found!!!")
+    checkTestFilesAreDefined()
 endif()
-set(CMAKE_CXX_STANDARD 17)
+
+#TODO : CREATE LIB ASYNCENGINE !!!
 #link_libraries(GTest::GTest GTest::Main)
 #add_library(AsyncEngine STATIC)
 #target_sources(AsyncEngine PUBLIC ThreadsafeHashTable.hpp)
 #set_target_properties(AsyncEngine PROPERTIES LINKER_LANGUAGE CXX)
 #target_link_libraries(AsyncEngine GTest::GTest GTest::Main)
 
-link_libraries(${GTEST_LIBRARIES} ${TBB_IMPORTED_TARGETS} pthread)
-include_directories(../../include/asyncTestEngine 
-                    ${GTEST_INCLUDE_DIRS}
-                   )
+set(EXTRA_LIBRARIES
+    
+    )
+include_directories(${GTEST_INCLUDE_DIRS})
+link_libraries(${GTEST_LIBRARIES} pthread)
 
-add_executable(exec exec.cpp)
-target_link_libraries(exec ${GTEST_LIBRARIES} pthread)
-target_include_directories(exec PUBLIC ../../include/asyncTestEngine 
-${GTEST_INCLUDE_DIRS})
+buildTests(${TestFiles})
