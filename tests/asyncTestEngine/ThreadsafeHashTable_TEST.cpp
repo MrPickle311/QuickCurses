@@ -4,6 +4,8 @@
 #include "../../extern/sigslot/signal.hpp"
 #include <iostream>
 #include <future>
+#include <ratio>
+#include <chrono>
 
 //SILNIK SYGNAŁÓW NA BAZIE TEGO KONTENERA
 template<typename Key,typename Value>
@@ -49,44 +51,40 @@ TEST(TableTest,InvariantTest)
     EXPECT_EQ(tw.getValue(0),0);
 }
 
+void push(std::shared_future<void>& future,
+          ThreadsafeHashTable<int,int>& table,
+          int key)
+{
+    future.wait();
+    table.addOrUpdateMapping(key,6);
+    table.removeMapping(key-1);
+    table.valueFor(key+1);
+}
+
 void testDataRacePresence()
 {
     ThreadsafeHashTable<int,int> table{40};
-    std::thread th1{&ThreadsafeHashTable<int,int>::addOrUpdateMapping,&table,56,54};
-    std::thread th2{&ThreadsafeHashTable<int,int>::addOrUpdateMapping,&table,565,54};
-    th1.join();
-    th2.join();
+    std::vector<std::thread> v;
+    v.reserve(10);
+    std::promise<void> promise;
+    std::shared_future<void> future{promise.get_future()};
+
+    for(size_t i{0};i < 10;++i)
+        v.emplace_back(push,std::ref(future),std::ref(table),i);
+    std::this_thread::sleep_for(std::chrono::seconds{1});
+    promise.set_value();
+    for(auto& t : v)
+        t.join();
 }
 
-void f(int h)
+
+TEST(TableTest,AsyncSimpleTest)
 {
-    std::cout << "XDXXDXD 1 " << h << std::endl;
+    EXPECT_NO_THROW(testDataRacePresence());    
 }
-
-void j(int h)
-{
-    std::cout << "XDXXDXD " << h << std::endl;
-}
-
-void g(sigslot::signal<int>& sig)
-{
-    sig(6);
-}
-
-template<typename... Args>
-using Signal = sigslot::signal<Args...>;
 
 int main(int argc, char **argv)
 {
-    Signal<int> sig;
-    auto c = sig.connect(j);
-    c.block();
-    sig(6);
-    c.unblock();
-    sig(7);
-    c.connected();
-    c.valid();
-    testDataRacePresence();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
