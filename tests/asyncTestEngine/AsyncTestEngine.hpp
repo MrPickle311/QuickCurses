@@ -11,6 +11,9 @@
 //lub bardzo możliwe ,że wystarczy jeden sygnał na cały system
 //tylko z odpowienim argumentem
 
+using Signal = sigslot::signal<size_t,size_t>;
+using Table = ThreadsafeHashTable<size_t,size_t>;
+
 template<typename TestedObject>
 class ObjectBuilder
 {
@@ -33,6 +36,10 @@ public:
         obj_{ObjectBuilder<TestedObject>::build(args...)}
     {}
     virtual ~ObjectProxy() {}
+    TestedObject& getObject()
+    {
+        return obj_;
+    }
 };
 
 //ok its safe
@@ -44,15 +51,51 @@ public:
     SystemReadyIndicator(std::promise<void>& system_ready_flag):
         indicator_{system_ready_flag.get_future()}
     {}
-    void wait()
+    void waitForSystemReady()
     {
         indicator_.wait();
     }
 };
 
-template<typename TestedObject>
-class SystemSharedObjects
+class SystemOperationCounter
 {
+private://albo zdefiniować operator == ?
+    bool tablesAreEqual(Table const& left,Table const& right) const
+    {
+
+    }
+public:
+    bool isSystemReady(Table const& ) const
+    {
+
+    }
+};
+
+class SystemOperationsCountGuardian
+{
+private: 
+    std::mutex operations_count_mutex_;
+    size_t operations_count_;//mutex!
+    Table operations_ready_table_;
+    Table all_operations_table_;
+};
+
+class OperationsBlocker
+{
+private:
+    std::promise<void> start_system_indicator_;
+public:
+
+};
+
+template<typename TestedObject>
+class SystemSharedObjects//rename to System
+{
+private://operations cannot have direct acces the following objects -> unsafe
+    SystemReadyIndicator system_ready_indicator_;
+    ObjectProxy<TestedObject> object_proxy_;
+    OperationsBlocker blocker_;
+
 };
 
 template<typename TestedObject,typename OperationReturnType>
@@ -66,11 +109,12 @@ template<typename TestedObject,typename OperationReturnType>
 class OperationBase
 {
 private:
-    size_t total_invocations_count_;
+    size_t total_operation_invocations_count_;
+    size_t const operation_id_;
 public:
     size_t getInvocationsCount() const
     {
-        return total_invocations_count_;
+        return total_operation_invocations_count_;
     }
 };
 
@@ -106,17 +150,4 @@ public:
     bool isTestExecutued() const = 0 ;
     void runTest() = 0;
     virtual ~AsyncTestEngine() {}
-};
-
-
-template<typename TestedObject,typename OperationReturnType>
-class TestedMethodImpl
-{
-private:
-    size_t total_invocations_count_;
-public:
-    void addInvocations(size_t new_invocations_count)
-    {
-        total_invocations_count_ += new_invocations_count;
-    }
 };
