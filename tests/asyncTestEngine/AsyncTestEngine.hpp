@@ -62,12 +62,12 @@ class SystemOperationCounter
 private://albo zdefiniować operator == ?
     bool tablesAreEqual(Table const& left,Table const& right) const
     {
-
+        return true;
     }
 public:
     bool isSystemReady(Table const& ) const
     {
-
+        return true;
     }
 };
 

@@ -4,7 +4,7 @@
 
 void f(SystemReadyIndicator& indicator)
 {
-    indicator.wait();
+    indicator.waitForSystemReady();
     std::cout << "xd" << std::endl;
 }
 

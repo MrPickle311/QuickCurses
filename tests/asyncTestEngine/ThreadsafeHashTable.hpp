@@ -65,7 +65,7 @@ private:
 
     BucketType& getBucket(Key const& key) const //possible data-race
     {
-        std::size_t const bucket_index {hasher_(key) % buckets_.size()}; //some random numbers
+        std::size_t const bucket_index {hasher_(key) % buckets_.size()}; //map hasher_(key) to size
         return *buckets_[bucket_index]; //unique_ptr dereference
     }
 public:
@@ -100,4 +100,13 @@ public:
     {
         getBucket(key).removeMapping(key);
     }
-}; 
+};
+
+template<typename Key,typename Value,typename Hash = std::hash<Key>>
+class ThreadsafeMap
+{
+private:
+    Hash hasher_;
+    size_t available_space_;
+    std::vector<Key>//ok, i finished here
+};
