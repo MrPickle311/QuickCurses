@@ -1,6 +1,7 @@
 #include <functional>
 #include <list>
 #include <shared_mutex>
+#include <mutex>
 #include <algorithm>
 #include <vector>
 
@@ -57,16 +58,41 @@ private:
             if(found_entry != data_.end())
                 data_.erase(found_entry);
         }
+
+        friend bool operator==(BucketType const& left, BucketType const& right)
+        {
+            std::scoped_lock lock{left.mutex_, right.mutex_};
+            return left.data_ == right.data_;
+        }
+
+        friend bool operator!=(BucketType const& left, BucketType const& right)
+        {
+            return !operator==(left,right);
+        }
     };
 private:
     //i do not trust it
     std::vector<std::unique_ptr<BucketType>> buckets_;
     Hash hasher_;
+    mutable std::shared_mutex sensitive_operation_mutex_;// equality operator etc..
 
     BucketType& getBucket(Key const& key) const //possible data-race
     {
+        std::shared_lock<std::shared_mutex> multithreaded_lock{sensitive_operation_mutex_};
         std::size_t const bucket_index {hasher_(key) % buckets_.size()}; //map hasher_(key) to size
         return *buckets_[bucket_index]; //unique_ptr dereference
+    }
+    friend bool compareTables(ThreadsafeHashTable const& left, 
+                       ThreadsafeHashTable const& right)
+    {
+        if(left.size() != right.size())
+            return false;
+        for(size_t i = 0; i < left.size(); ++i)
+        {
+            if(*(left.buckets_[i]) != *(right.buckets_[i]))
+                return false;
+        }
+        return true;
     }
 public:
     using KeyType = Key;
@@ -100,10 +126,26 @@ public:
     {
         getBucket(key).removeMapping(key);
     }
+
+    size_t size() const
+    {
+        return buckets_.size();
+    }
+
     friend bool operator==(ThreadsafeHashTable const& left, 
                            ThreadsafeHashTable const& right)
     {
-        //ZDEFINIUJ OPERATOR DLA BUCKETA!
+        std::scoped_lock<std::shared_mutex,std::shared_mutex> 
+                                            singlethreaded_lock{
+                                             left.sensitive_operation_mutex_,
+                                             right.sensitive_operation_mutex_};
+        return compareTables(left,right);
+    }
+
+    friend bool operator!=(ThreadsafeHashTable const& left, 
+                           ThreadsafeHashTable const& right)
+    {
+        return !operator==(left,right);
     }
 };
 //Such a buckets structure is because it need to store every key.

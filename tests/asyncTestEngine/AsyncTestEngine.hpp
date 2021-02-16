@@ -62,7 +62,7 @@ class SystemOperationCounter
 private://albo zdefiniować operator == ?
     bool tablesAreEqual(Table const& left,Table const& right) const
     {
-        return true;
+        return left == right;
     }
 public:
     bool isSystemReady(Table const& ) const
@@ -78,6 +78,8 @@ private:
     size_t operations_count_;//mutex!
     Table operations_ready_table_;
     Table all_operations_table_;
+public:
+
 };
 
 class OperationsBlocker

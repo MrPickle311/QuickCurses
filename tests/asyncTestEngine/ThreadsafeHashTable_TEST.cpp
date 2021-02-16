@@ -89,7 +89,23 @@ void testDataRacePresenceForTableEqalityOperator()
 
 TEST(TableTest,EqualityOperatorTest)
 {
+    ThreadsafeHashTable<size_t,size_t> table1;
+    ThreadsafeHashTable<size_t,size_t> table2;
 
+    EXPECT_EQ(table1,table2);
+    
+    table1.addOrUpdateMapping(1,1);
+    table2.addOrUpdateMapping(1,1);
+    EXPECT_EQ(table1,table2);
+
+    table1.addOrUpdateMapping(2,2);
+    EXPECT_NE(table1,table2) << "Testing NE ";
+
+    table2.addOrUpdateMapping(2,2);
+    EXPECT_EQ(table1,table2);
+
+    table2.addOrUpdateMapping(3,2);
+    EXPECT_NE(table1,table2);
 }
 
 using Pair = std::pair<size_t,size_t>;
