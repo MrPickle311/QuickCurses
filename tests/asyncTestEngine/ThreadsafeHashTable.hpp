@@ -100,13 +100,11 @@ public:
     {
         getBucket(key).removeMapping(key);
     }
+    friend bool operator==(ThreadsafeHashTable const& left, 
+                           ThreadsafeHashTable const& right)
+    {
+        //ZDEFINIUJ OPERATOR DLA BUCKETA!
+    }
 };
-
-template<typename Key,typename Value,typename Hash = std::hash<Key>>
-class ThreadsafeMap
-{
-private:
-    Hash hasher_;
-    size_t available_space_;
-    std::vector<Key>//ok, i finished here
-};
+//Such a buckets structure is because it need to store every key.
+//Hashing and the modulo operation may blur the keys which have similar hash values
