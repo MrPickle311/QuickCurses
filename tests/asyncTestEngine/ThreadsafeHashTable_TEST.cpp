@@ -6,6 +6,7 @@
 #include <future>
 #include <ratio>
 #include <chrono>
+#include <functional>
 
 //SILNIK SYGNAŁÓW NA BAZIE TEGO KONTENERA
 template<typename Key,typename Value>
@@ -61,30 +62,49 @@ void push(std::shared_future<void>& future,
     table.valueFor(key+1);
 }
 
-void testDataRacePresence()
+void singleAsyncEqualityTest(std::shared_future<void>& future,
+          ThreadsafeHashTable<int,int>& table1,
+          ThreadsafeHashTable<int,int>& table2)
 {
-    ThreadsafeHashTable<int,int> table{40};
-    std::vector<std::thread> v;
-    v.reserve(10);
+    future.wait();
+    if(table1 == table2)
+        std::cout << "Tables are equal\n";
+}
+
+void testDataRacePresence(size_t iterations_nmbr)
+{
+    ThreadsafeHashTable<int,int> table1{40};
+    ThreadsafeHashTable<int,int> table2{40};
+
+    std::vector<std::thread> threads1;
+    std::vector<std::thread> threads2;
+
+    threads1.reserve(iterations_nmbr);
+    threads2.reserve(iterations_nmbr);
+
     std::promise<void> promise;
     std::shared_future<void> future{promise.get_future()};
 
-    for(size_t i{0};i < 10;++i)
-        v.emplace_back(push,std::ref(future),std::ref(table),i);
-    std::this_thread::sleep_for(std::chrono::seconds{1});
+    for(size_t i{0};i < iterations_nmbr;++i)
+    {
+        threads1.emplace_back(push,std::ref(future),std::ref(table1),i);
+        threads2.emplace_back(singleAsyncEqualityTest,std::ref(future),
+                                                      std::ref(table1),
+                                                      std::ref(table2));
+    }
     promise.set_value();
-    for(auto& t : v)
+    
+    for(auto& t : threads1)
+        t.join();
+    for(auto& t : threads2)
         t.join();
 }
 
 TEST(TableTest,AsyncSimpleTest)
 {
-    EXPECT_NO_THROW(testDataRacePresence());    
-}
-
-void testDataRacePresenceForTableEqalityOperator()
-{
-
+    EXPECT_NO_THROW(testDataRacePresence(10));    
+    EXPECT_NO_THROW(testDataRacePresence(20));  
+    EXPECT_NO_THROW(testDataRacePresence(30));  
 }
 
 TEST(TableTest,EqualityOperatorTest)
@@ -185,10 +205,10 @@ TEST(EqualityTests,PointersEqualityTest)
     EXPECT_NE(ptr1,ptr2);
 }
 
-
-
 int main(int argc, char **argv)
 {
+    ::testing::FLAGS_gtest_repeat = 30;
+    ::testing::FLAGS_gtest_shuffle = true;
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }

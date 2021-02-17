@@ -59,7 +59,7 @@ public:
 
 class SystemOperationCounter
 {
-private://albo zdefiniować operator == ?
+private:
     bool tablesAreEqual(Table const& left,Table const& right) const
     {
         return left == right;
@@ -98,6 +98,14 @@ private://operations cannot have direct acces the following objects -> unsafe
     ObjectProxy<TestedObject> object_proxy_;
     OperationsBlocker blocker_;
 
+};
+
+//mediator
+template<typename TestedObject>
+class System
+{
+private:
+    SystemSharedObjects<TestedObject> shared_objects_;
 };
 
 template<typename TestedObject,typename OperationReturnType>
