@@ -6,6 +6,9 @@ docs
 # build
 build/
 
+#extern , i need to learn git submoduling
+/extern
+
 #compiled surce
 *.exe
 *.a

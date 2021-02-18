@@ -1,77 +1,202 @@
 #include <gtest/gtest.h>
 #include <future>
 #include "AsyncTestEngine.hpp"
-
-void f(SystemReadyIndicator& indicator)
-{
-    indicator.waitForSystemReady();
-    std::cout << "Test string" << std::endl;
-}
-
-void testDataRacePresence()
-{
-    std::promise<void> promise;
-    SystemReadyIndicator indicator{promise};
-    std::vector<std::thread> v;
-    v.reserve(10);
-
-    for(size_t i{0};i < 10;++i)
-        v.emplace_back(f,std::ref(indicator));
-    std::this_thread::sleep_for(std::chrono::seconds{1});
-    promise.set_value();
-    for(auto& t : v)
-        t.join();
-}
-
-TEST(SystemReadyIndicatorTest,DataRaceTest)
-{
-    EXPECT_NO_THROW(testDataRacePresence());
-}
+#include "../../include/Core/ThreadsafeQueue.hpp"
 
 
-struct Wrapper
+template<typename T>
+class DataStorage
 {
 private:
-    ThreadsafeHashTable<int,int> table_;
+    std::vector<T> data_;
 public:
-    Wrapper(size_t buckets_number):
-        table_{buckets_number}
-    {}
-    ThreadsafeHashTable<int,int>& getTable()
+    T getDataAtIndex(size_t index) const
     {
-        return table_;
+        if(index >= data_.size())
+            return data_[index];
+        else throw std::out_of_range{"Vector index out of range"};
+    }
+    std::vector<T> getRangeOfData() const
+    {
+        return data_;
+    }
+    void addData(std::vector<T> const & data) //casual setter
+    {
+        data_ = data;
     }
 };
 
-void pushWithWrapper(std::shared_future<void>& future,
-          Wrapper& wrapper,
-          int key)
+template<typename T>
+class QueueLittlePushTest:
+    public TestedOperation<ThreadsafeQueue<T>>,
+    public DataStorage<T>
 {
-    future.wait();
-    wrapper.getTable().addOrUpdateMapping(key,6);
-    wrapper.getTable().removeMapping(key-1);
-    wrapper.getTable().valueFor(key+1);
-}
+protected:
+    virtual void operation(size_t operation_current_iteration) // now operation_number it's even handy
+    {
+        T data_to_push = getDataAtIndex(operation_current_iteration);
+        System.getTestedObject().push(data_to_push);
+    }
+public:
+    QueueLittlePushTest(System& system_ref):
+        TestedOperation<ThreadsafeQueue<T>>{system_ref},
+        DataStorage<T>{}
+    {}
+};
 
-void testDataRacePresenceWithWrapper()
+template<typename T>
+class QueueBigPushTest:
+    public TestedOperation<ThreadsafeQueue<T>>,
+    public DataStorage<T>
 {
-    Wrapper wrapper{40};
-    std::vector<std::thread> v;
-    v.reserve(10);
-    std::promise<void> promise;
-    std::shared_future<void> future{promise.get_future()};
+protected:
+    virtual void operation(size_t operation_current_iteration) //but not here, im pushing all data at once
+    {
+        for(auto& element : getRangeOfData())
+            System::getTestedObject().push(element);
+    }
+    virtual void delay() const
+    {
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
+public:
+    QueueBigPushTest(System& system_ref):
+        TestedOperation<ThreadsafeQueue<T>>{system_ref}
+    {}
+};
 
-    for(size_t i{0};i < 10;++i)
-        v.emplace_back(pushWithWrapper,std::ref(future),std::ref(wrapper),i);
-    std::this_thread::sleep_for(std::chrono::seconds{1});
-    promise.set_value();
-    for(auto& t : v)
-        t.join();
-}
-
-TEST(TableTest,WrapperTest)
+template<typename T>
+class QueueTryPopRefTest:
+    public TestedOperation<ThreadsafeQueue<T>>
 {
-    EXPECT_NO_THROW(testDataRacePresenceWithWrapper());    
+private:
+    std::vector<T> data_from_queue_;
+protected:
+    virtual void operation(size_t operation_current_iteration) 
+    {
+        T temp;
+        System::getTestedObject().tryPop(temp);
+        data_from_queue_.push_back(temp);
+    }
+    virtual void workload()//before wait(), some initialization actions
+    {
+        size_t count {TestedOperation::getIterationsCount()};
+        data_from_queue_.resize(count);
+    }
+public:
+    QueueTryPopRefTest(System& system_ref):
+        TestedOperation<ThreadsafeQueue<T>>{system_ref}
+    {}
+};
+
+template<typename T>
+class QueueClearWithWaitAndPopTest:
+    public TestedOperation<ThreadsafeQueue<T>>
+{
+protected:
+    virtual void operation(size_t operation_current_iteration) 
+    {
+        System::getTestedObject().clear();
+        std::cout << "Current repetition: " << TestedOperation::getCurrentRepetition() << std::endl;
+        System::getTestedObject().waitAndPop();
+    }
+public:
+    QueueClearWithWaitAndPopTest(System& system_ref):
+        TestedOperation<ThreadsafeQueue<T>>{system_ref}
+    {}
+};
+
+template<typename T>
+class QueueEmptyTest:
+    public TestedOperation<ThreadsafeQueue<T>>
+{
+protected:
+    virtual void operation(size_t operation_current_iteration) 
+    {
+        System::getTestedObject().empty();
+    }
+public:
+    QueueEmptyTest(System& system_ref):
+        TestedOperation<ThreadsafeQueue<T>>{system_ref}
+    {}
+};
+
+template<typename T>
+class ThreadsafeQueueTest:
+    public AsyncTest<ThreadsafeQueue<T>>,
+    public testing::Test
+{
+    using AsyncTest = AsyncTest<ThreadsafeQueue<T>>;
+private:
+    QueueLittlePushTest<T> little_push_test_;
+    QueueBigPushTest<T> big_push_test_;
+    QueueTryPopRefTest<T> try_pop_ref_test_;
+    QueueClearWithWaitAndPopTest<T> clear_with_wait_and_pop_test_;
+    QueueEmptyTest<T> empty_test_; // default in-loop iterations count is 1 
+private:
+    void setPushIterations(size_t iterations)
+    {
+        little_push_test_.setIterations(iterations);
+        big_push_test_.setIterations(iterations);
+    }
+protected:
+    ThreadsafeQueueTest():
+        little_push_test_{AsyncTest::getAccessToSystem()},
+        big_push_test_{AsyncTest::getAccessToSystem()},
+        try_pop_ref_test_{AsyncTest::getAccessToSystem()},
+        clear_with_wait_and_pop_test_{AsyncTest::getAccessToSystem()},
+        empty_test_{AsyncTest::getAccessToSystem()}
+    {}
+    void setPushRepetitionsCount(size_t count)
+    {
+        little_push_test_.setRepetitionsCount(count);
+        big_push_test_.setRepetitionsCount(count);
+    }
+    void setEmptyRepetitionsCount(size_t count)
+    {
+        empty_test_.setRepetitionsCount(count);
+    }
+    void setClearWithWaitAndPopRepetitionsCount(size_t count)
+    {
+        clear_with_wait_and_pop_test_.setRepetitionsCount(count);
+    }
+    void setTryPopRepetitionsCount(size_t count)
+    {
+        try_pop_ref_test_.setRepetitionsCount(count);
+    }
+    void setTryPopIterationsCount(size_t count)
+    {
+        try_pop_ref_test_.setIterationsCount(count);
+    }
+    void addDataset(std::vector<T> new_data)
+    {
+        little_push_test_.addData(new_data);
+        big_push_test_.addData(new_data);
+        setPushIterations(new_data.size());
+    }
+    virtual void runTest()//but by default it will not pure virtual
+    {
+        System::run();
+    };
+};
+
+using MyTypes = testing::Types<int,std::string>;
+TYPED_TEST_SUITE(ThreadsafeQueueTest,MyTypes);
+
+TYPED_TEST(ThreadsafeQueueTest,FirstTest)
+{
+    std::vector<T> data_;
+    for (size_t i = 0; i < 1000; ++i)
+        data_.push_back(T{});
+    
+    EXPECT_NO_THROW(this->addDataset(data_));
+    EXPECT_NO_THROW(this->setPushRepetitionsCount(2));
+    EXPECT_NO_THROW(this->setEmptyRepetitionsCount(3));
+    EXPECT_NO_THROW(this->setClearWithWaitAndPopRepetitionsCount(2));
+    EXPECT_NO_THROW(this->setTryPopRepetitionsCount(3));
+    EXPECT_NO_THROW(this->setTryPopIterationsCount(300));
+
+    EXPECT_NO_THROW(this->runTest());
 }
 
 int main(int argc, char **argv)

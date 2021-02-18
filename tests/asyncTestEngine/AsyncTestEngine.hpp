@@ -1,4 +1,4 @@
-#include "../../extern/sigslot/signal.hpp"
+#include <boost/signals2.hpp>
 #include "ThreadsafeHashTable.hpp"
 
 #include <future>
@@ -11,7 +11,7 @@
 //lub bardzo możliwe ,że wystarczy jeden sygnał na cały system
 //tylko z odpowienim argumentem
 
-using Signal = sigslot::signal<size_t,size_t>;
+using Signal = boost::signals2::signal<void()>;
 using Table = ThreadsafeHashTable<size_t,size_t>;
 
 template<typename TestedObject>
@@ -154,7 +154,7 @@ public:
 };
 
 template<typename TestedObject>
-class AsyncTestEngine
+class AsyncTest
 {
 public:
     bool isTestExecutued() const = 0 ;

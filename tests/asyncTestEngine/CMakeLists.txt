@@ -1,5 +1,11 @@
 message("Loading tests/asyncTestEngine module...")
- 
+
+find_package(Boost 1.75.0)
+
+if(Boost_FOUND)
+    message("Boost found!")
+endif()
+
 set(TestLibs
     ThreadsafeHashTable
     AsyncTestEngine
@@ -21,7 +27,7 @@ endif()
 set(EXTRA_LIBRARIES
     
     )
-include_directories(${GTEST_INCLUDE_DIRS})
-link_libraries(${GTEST_LIBRARIES} pthread)
+include_directories(${GTEST_INCLUDE_DIRS} ${Boost_INCLUDE_DIR} )
+link_libraries(${GTEST_LIBRARIES} ${Boost_LIBRARIES} pthread)
 
 buildTests("${TestFiles}")
