@@ -34,7 +34,8 @@ class QueueLittlePushTest:
 protected:
     virtual void operation(size_t operation_current_iteration) // now operation_number it's even handy
     {
-        T data_to_push = getDataAtIndex(operation_current_iteration);
+        size_t iteration {System.getCurrentIteration()};
+        T data_to_push = getDataAtIndex(iteration);
         System.getTestedObject().push(data_to_push);
     }
 public:
@@ -113,6 +114,7 @@ class QueueEmptyTest:
 protected:
     virtual void operation(size_t operation_current_iteration) 
     {
+        //or TestedOperation , but only one of them 
         System::getTestedObject().empty();
     }
 public:
