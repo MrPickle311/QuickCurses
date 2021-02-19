@@ -91,7 +91,7 @@ public:
 };
 
 template<typename TestedObject>
-class SystemSharedObjects//rename to System
+class System//rename to System
 {
 private://operations cannot have direct acces the following objects -> unsafe
     SystemReadyIndicator system_ready_indicator_;
@@ -100,62 +100,108 @@ private://operations cannot have direct acces the following objects -> unsafe
 
 };
 
-//mediator
-template<typename TestedObject>
-class System
-{
-private:
-    SystemSharedObjects<TestedObject> shared_objects_;
-};
-
-template<typename TestedObject,typename OperationReturnType>
-class InvocationsPusher //defined by me
+class OptionalActions
 {
 public:
-    void addInvocations(size_t new_invocations_count) = 0;
+    virtual void prepareData() {}
+    virtual void workload() {}
+    virtual void delay() {}
 };
 
-template<typename TestedObject,typename OperationReturnType>
-class OperationBase
+class ExpectedActions
+{
+public:
+    virtual void operation() = 0; //defined by user
+};
+
+class RepetitionInfo
 {
 private:
-    size_t total_operation_invocations_count_;
-    size_t const operation_id_;
+    size_t total_repetitions_count_;
+    size_t current_repetition_;
 public:
-    size_t getInvocationsCount() const
+    RepetitionInfo(size_t const total_repetitions_count):
+        total_repetitions_count_{total_repetitions_count},
+        current_repetition_{0}
+    {}
+    size_t getRepetitionsCount() const
     {
-        return total_operation_invocations_count_;
+        return total_repetitions_count_;
+    }
+    void incrementCurrentRepetition()
+    {
+        if(++current_repetition_ < total_repetitions_count_)
+            ++current_repetition_;
+        else throw std::out_of_range{"current_repetition_ >= total_repetitions_count_!"};
+    }
+    size_t getCurrentRepetition() const
+    {
+        return current_repetition_;
     }
 };
 
-class OperationsExecuterHooks
+class IterationInfo
 {
-protected:
-    virtual void printData() const {}
-    virtual void prepareData() {}
-    virtual void workload() {}
-};
-
-template<typename TestedObject,typename OperationReturnType>
-class OperationsExecuter:
-    public OperationsExecuterHooks
-{
-protected:
-    void executeOperations(size_t invocations_number) = 0;
-};
-
-template<typename TestedObject,typename OperationReturnType>
-class TestedOperation:
-    public InvocationsPusher<TestedObject,OperationReturnType>
-
-{
+private:
+    size_t current_iteration_;
 public:
-    virtual OperationReturnType operation() = 0; //defined by user
+    size_t getCurrentIteration() const
+    {
+        return current_iteration_;
+    }
+    void incrementCurrentIteration()
+    {
+        ++current_iteration_;
+    } 
+    void resetCurrentIterations()
+    {
+        current_iteration_ = 0;
+    }
 };
+
+//each operation will have 3 signals
+//first for incrementCurrentRepetition()
+//second for incrementCurrentIteration()
+//thrid for resetCurrentIteration()
+
+
+class OperationInfo:
+    public IterationInfo,
+    public RepetitionInfo
+{};
+
+template<typename TestedObject>
+struct Connection
+{
+    Signal& increment_repetition_;
+    Signal& increment_iteration_;
+    Signal& reset_iterations_;
+    System& system_;
+};
+
+
+
+//constructor of below class takes a connection in the constructor
+template<typename TestedObject>
+class TestedOperation:
+    public OptionalActions,
+    public ExpectedActions
+{
+private:
+    size_t const operation_id_;
+    System<TestedObject>& system_;
+    OperationInfo info_;
+    ConnectionMaker maker_; //it makes connetions between OperationsExecuter and 
+                            //OperationInfo
+
+};
+
 
 template<typename TestedObject>
 class AsyncTest
 {
+private:
+    System<TestedObject> system_;
 public:
     bool isTestExecutued() const = 0 ;
     void runTest() = 0;

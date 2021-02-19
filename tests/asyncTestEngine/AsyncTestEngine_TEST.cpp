@@ -32,7 +32,7 @@ class QueueLittlePushTest:
     public DataStorage<T>
 {
 protected:
-    virtual void operation(size_t operation_current_iteration) // now operation_number it's even handy
+    virtual void operation() // now operation_number it's even handy
     {
         size_t iteration {System.getCurrentIteration()};
         T data_to_push = getDataAtIndex(iteration);
@@ -51,7 +51,7 @@ class QueueBigPushTest:
     public DataStorage<T>
 {
 protected:
-    virtual void operation(size_t operation_current_iteration) //but not here, im pushing all data at once
+    virtual void operation() //but not here, im pushing all data at once
     {
         for(auto& element : getRangeOfData())
             System::getTestedObject().push(element);
@@ -73,7 +73,7 @@ class QueueTryPopRefTest:
 private:
     std::vector<T> data_from_queue_;
 protected:
-    virtual void operation(size_t operation_current_iteration) 
+    virtual void operation() 
     {
         T temp;
         System::getTestedObject().tryPop(temp);
@@ -81,7 +81,7 @@ protected:
     }
     virtual void workload()//before wait(), some initialization actions
     {
-        size_t count {TestedOperation::getIterationsCount()};
+        size_t count {TestedOperation::getThisOperationIterationsCount()};
         data_from_queue_.resize(count);
     }
 public:
@@ -95,7 +95,7 @@ class QueueClearWithWaitAndPopTest:
     public TestedOperation<ThreadsafeQueue<T>>
 {
 protected:
-    virtual void operation(size_t operation_current_iteration) 
+    virtual void operation() 
     {
         System::getTestedObject().clear();
         std::cout << "Current repetition: " << TestedOperation::getCurrentRepetition() << std::endl;
@@ -112,7 +112,7 @@ class QueueEmptyTest:
     public TestedOperation<ThreadsafeQueue<T>>
 {
 protected:
-    virtual void operation(size_t operation_current_iteration) 
+    virtual void operation() 
     {
         //or TestedOperation , but only one of them 
         System::getTestedObject().empty();
@@ -176,7 +176,7 @@ protected:
         big_push_test_.addData(new_data);
         setPushIterations(new_data.size());
     }
-    virtual void runTest()//but by default it will not pure virtual
+    virtual void runTest()//but by default it won't be pure-virtual
     {
         System::run();
     };
