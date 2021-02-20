@@ -4,6 +4,7 @@
 #include <future>
 #include <mutex>
 #include <shared_mutex>
+#include <condition_variable>
 
 //każde dołączenie jakiejś operacji generuje nowy slot w hash_table 
 //każda operacja będzie mieć swój identyfikator oraz swój sygnał
@@ -11,8 +12,9 @@
 //lub bardzo możliwe ,że wystarczy jeden sygnał na cały system
 //tylko z odpowienim argumentem
 
-using Signal = boost::signals2::signal<void()>;
 using Table = ThreadsafeHashTable<size_t,size_t>;
+using Signal = boost::signals2::signal<void ()>;
+using Connection = boost::signals2::connection;
 
 template<typename TestedObject>
 class ObjectBuilder
@@ -42,66 +44,12 @@ public:
     }
 };
 
-//ok its safe
-class SystemReadyIndicator
-{
-private:
-    std::shared_future<void> indicator_;
-public:
-    SystemReadyIndicator(std::promise<void>& system_ready_flag):
-        indicator_{system_ready_flag.get_future()}
-    {}
-    void waitForSystemReady()
-    {
-        indicator_.wait();
-    }
-};
-
-class SystemOperationCounter
-{
-private:
-    bool tablesAreEqual(Table const& left,Table const& right) const
-    {
-        return left == right;
-    }
-public:
-    bool isSystemReady(Table const& ) const
-    {
-        return true;
-    }
-};
-
-class SystemOperationsCountGuardian
-{
-private: 
-    std::mutex operations_count_mutex_;
-    size_t operations_count_;//mutex!
-    Table operations_ready_table_;
-    Table all_operations_table_;
-public:
-
-};
-
-class OperationsBlocker
-{
-private:
-    std::promise<void> start_system_indicator_;
-public:
-
-};
-
-template<typename TestedObject>
-class System//rename to System
-{
-private://operations cannot have direct acces the following objects -> unsafe
-    SystemReadyIndicator system_ready_indicator_;
-    ObjectProxy<TestedObject> object_proxy_;
-    OperationsBlocker blocker_;
-
-};
-
 class OptionalActions
 {
+private:
+    Connection prepare_data_connection_;
+    Connection workload_connection_;
+    Connection delay_connection_;
 public:
     virtual void prepareData() {}
     virtual void workload() {}
@@ -110,8 +58,14 @@ public:
 
 class ExpectedActions
 {
+private:
+    Connection operation_connection;
 public:
     virtual void operation() = 0; //defined by user
+    void setupConnection()  //it will break hermetization
+    {
+
+    }
 };
 
 class RepetitionInfo
@@ -120,8 +74,8 @@ private:
     size_t total_repetitions_count_;
     size_t current_repetition_;
 public:
-    RepetitionInfo(size_t const total_repetitions_count):
-        total_repetitions_count_{total_repetitions_count},
+    RepetitionInfo():
+        total_repetitions_count_{0},
         current_repetition_{0}
     {}
     size_t getRepetitionsCount() const
@@ -164,22 +118,10 @@ public:
 //second for incrementCurrentIteration()
 //thrid for resetCurrentIteration()
 
-
 class OperationInfo:
     public IterationInfo,
     public RepetitionInfo
 {};
-
-template<typename TestedObject>
-struct Connection
-{
-    Signal& increment_repetition_;
-    Signal& increment_iteration_;
-    Signal& reset_iterations_;
-    System& system_;
-};
-
-
 
 //constructor of below class takes a connection in the constructor
 template<typename TestedObject>
@@ -187,23 +129,126 @@ class TestedOperation:
     public OptionalActions,
     public ExpectedActions
 {
+    template<typename TestedObject>
+    friend class ConnectionMaker;
 private:
-    size_t const operation_id_;
-    System<TestedObject>& system_;
+    size_t operation_id_;
     OperationInfo info_;
-    ConnectionMaker maker_; //it makes connetions between OperationsExecuter and 
-                            //OperationInfo
+    ObjectProxy<TestedObject>& proxy_;
+public:
+    TestedObject& getTestedObject()
+    {
+        return proxy_.getObject();
+    }
+};
+
+////////////////////////////////
+
+//I need to make connection in class which is owner of the method 
+
+class OperationInfoUpdater
+{
+private:
+    Signal iterations_reset_;
+    Signal inrement_iteration_;
+    Signal increment_repetition_;
+    OperationInfoUpdater(RepetitionInfo& repetition_info,
+                         IterationInfo& iteration_info):
+        iterations_reset_{boost::bind()}
+    {}
+public:
+    void resetIterations()
+    {
+        iterations_reset_();
+    }
+    void invcrementIteration()
+    {
+        inrement_iteration_();
+    }
+    void incrementRepetition()
+    {
+        increment_repetition_();
+    }
+};
+
+class ActionsInvoker
+{
+private:
+    Signal invoke_operation_;
+    Signal invoke_delay_;
+    Signal invoke_workload_;
+    Signal invoke_prepare_data_;
+};
+
+class OperationConnections
+{
+private:
+     ActionsInvoker invoker_;
+     OperationInfoUpdater updater_;
+};
+
+class SystemSharedResources
+{
+private:
+    std::condition_variable system_guardian_;
+};
+
+class PendingObject
+{
+private:
+    
+};
+
+class OperationExecuter
+{
 
 };
 
+class SystemMonitor
+{
+
+};
+
+class OperationManager
+{
+private:
+    SystemSharedResources& resources_;
+    OperationExecuter executer_;
+    PendingObject pending_object_;
+    OperationConnections connections;
+public:
+
+};
+
+class System
+{
+public:
+
+};
+
+//So, maybe some friend declarations ?
+
+//this class below makes the connections between the system and a TestedOperation
+template<typename TestedObject>//builder interface
+class ConnectionMaker
+{
+public:
+    ~ConnectionMaker() {}
+    OperationConnections makeConnection(TestedOperation<TestedObject>& operation)
+    {
+
+    }
+};
 
 template<typename TestedObject>
 class AsyncTest
 {
 private:
-    System<TestedObject> system_;
+    System system_;
+    ObjectProxy<TestedObject> proxy_;
+    ConnectionMaker connection_maker_;
 public:
-    bool isTestExecutued() const = 0 ;
-    void runTest() = 0;
-    virtual ~AsyncTestEngine() {}
+    virtual bool isTestExecutued() const = 0 ;
+    virtual void runTest() = 0;
+    virtual ~AsyncTest() {}
 };
