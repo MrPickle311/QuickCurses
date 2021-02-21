@@ -6,6 +6,8 @@
 #include <shared_mutex>
 #include <condition_variable>
 
+#define interface class 
+
 //każde dołączenie jakiejś operacji generuje nowy slot w hash_table 
 //każda operacja będzie mieć swój identyfikator oraz swój sygnał
 
@@ -46,11 +48,6 @@ public:
 
 class OptionalActions
 {
-private:
-    Connection prepare_data_connection_;
-    Connection workload_connection_;
-    Connection delay_connection_;
-public:
     virtual void prepareData() {}
     virtual void workload() {}
     virtual void delay() {}
@@ -58,25 +55,22 @@ public:
 
 class ExpectedActions
 {
-private:
-    Connection operation_connection;
 public:
     virtual void operation() = 0; //defined by user
-    void setupConnection()  //it will break hermetization
-    {
-
-    }
 };
 
 class RepetitionInfo
 {
+    friend class OperationInfoUpdater;
 private:
     size_t total_repetitions_count_;
     size_t current_repetition_;
+    std::mutex repetition_mutex_;
 public:
     RepetitionInfo():
         total_repetitions_count_{0},
-        current_repetition_{0}
+        current_repetition_{0},
+        repetition_mutex_{}
     {}
     size_t getRepetitionsCount() const
     {
@@ -84,7 +78,8 @@ public:
     }
     void incrementCurrentRepetition()
     {
-        if(++current_repetition_ < total_repetitions_count_)
+        std::lock_guard<std::mutex> lock{repetition_mutex_};
+        if(++current_repetition_ < getRepetitionsCount())
             ++current_repetition_;
         else throw std::out_of_range{"current_repetition_ >= total_repetitions_count_!"};
     }
@@ -92,23 +87,34 @@ public:
     {
         return current_repetition_;
     }
+    void setRepetitionsCount(size_t count)
+    {
+        total_repetitions_count_ = count;
+    }
 };
 
 class IterationInfo
 {
+    friend class OperationInfoUpdater;
 private:
+    std::mutex iteration_mutex_;
     size_t current_iteration_;
 public:
+    IterationInfo():
+        iteration_mutex_{}
+    {}
     size_t getCurrentIteration() const
     {
         return current_iteration_;
     }
     void incrementCurrentIteration()
     {
+        std::lock_guard<std::mutex> lock{iteration_mutex_};
         ++current_iteration_;
     } 
     void resetCurrentIterations()
     {
+        std::lock_guard<std::mutex> lock{iteration_mutex_};
         current_iteration_ = 0;
     }
 };
@@ -149,35 +155,60 @@ public:
 class OperationInfoUpdater
 {
 private:
-    Signal iterations_reset_;
-    Signal inrement_iteration_;
-    Signal increment_repetition_;
-    OperationInfoUpdater(RepetitionInfo& repetition_info,
-                         IterationInfo& iteration_info):
-        iterations_reset_{boost::bind()}
+    OperationInfo& info_;
+public:
+    OperationInfoUpdater(OperationInfo& info):
+        info_{info}
     {}
 public:
     void resetIterations()
     {
-        iterations_reset_();
+        info_.resetCurrentIterations();
     }
     void invcrementIteration()
     {
-        inrement_iteration_();
+        info_.incrementCurrentIteration();
     }
     void incrementRepetition()
     {
-        increment_repetition_();
+        info_.incrementCurrentRepetition();
     }
 };
+
 
 class ActionsInvoker
 {
 private:
-    Signal invoke_operation_;
-    Signal invoke_delay_;
-    Signal invoke_workload_;
-    Signal invoke_prepare_data_;
+    ExpectedActions& expected_actions_;
+    OptionalActions& optional_actions_;
+public:
+    ActionsInvoker(ExpectedActions& expected_actions,
+                   OptionalActions& optional_actions):
+        expected_actions_{expected_actions},
+        optional_actions_{optional_actions}
+    {}
+    void invokeOperation()
+    {
+        expected_actions_.operation();
+    }
+};
+
+class OperationLoop
+{
+private:
+    OperationInfoUpdater updater_;
+    ActionsInvoker invoker_;
+public:
+    OperationLoop(OptionalActions& expected_actions_,
+                  ExpectedActions& required_actions_,
+                  OperationInfo&  info):
+        updater_{info},
+
+    {}
+    void loop()
+    {
+
+    }
 };
 
 class OperationConnections
@@ -223,7 +254,10 @@ public:
 class System
 {
 public:
+    void registerOperation()
+    {
 
+    }
 };
 
 //So, maybe some friend declarations ?
@@ -251,4 +285,5 @@ public:
     virtual bool isTestExecutued() const = 0 ;
     virtual void runTest() = 0;
     virtual ~AsyncTest() {}
+    void registerOperation()
 };
