@@ -5,8 +5,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include <condition_variable>
-
-#define interface class 
+#include <atomic>
 
 //każde dołączenie jakiejś operacji generuje nowy slot w hash_table 
 //każda operacja będzie mieć swój identyfikator oraz swój sygnał
@@ -63,25 +62,22 @@ class RepetitionInfo
 {
     friend class OperationInfoUpdater;
 private:
-    size_t total_repetitions_count_;
-    size_t current_repetition_;
-    std::mutex repetition_mutex_;
+    std::atomic_uint64_t total_repetitions_count_;
+    std::atomic_uint64_t current_repetition_;
 public:
     RepetitionInfo():
         total_repetitions_count_{0},
-        current_repetition_{0},
-        repetition_mutex_{}
+        current_repetition_{0}
     {}
-    size_t getRepetitionsCount() const
+    size_t getTotalRepetitionsCount() const //do not show implementation details
     {
         return total_repetitions_count_;
     }
     void incrementCurrentRepetition()
     {
-        std::lock_guard<std::mutex> lock{repetition_mutex_};
-        if(++current_repetition_ < getRepetitionsCount())
+        if( ++current_repetition_ < total_repetitions_count_ )
             ++current_repetition_;
-        else throw std::out_of_range{"current_repetition_ >= total_repetitions_count_!"};
+        else throw std::out_of_range{"RepetitionInfo : current_repetition_ >= total_repetitions_count_ ! "};
     }
     size_t getCurrentRepetition() const
     {
@@ -97,24 +93,30 @@ class IterationInfo
 {
     friend class OperationInfoUpdater;
 private:
-    std::mutex iteration_mutex_;
-    size_t current_iteration_;
+    std::atomic_uint64_t current_iteration_;
+    std::atomic_uint64_t total_iterations_nmbr_;
 public:
     IterationInfo():
-        iteration_mutex_{}
+        current_iteration_{0}
     {}
+    size_t getTotalIterationsCount() const
+    {
+        return total_iterations_nmbr_;
+    }
+    void setTotalIterationsCount(size_t count)
+    {
+        total_iterations_nmbr_ = count;
+    } 
     size_t getCurrentIteration() const
     {
         return current_iteration_;
     }
     void incrementCurrentIteration()
     {
-        std::lock_guard<std::mutex> lock{iteration_mutex_};
         ++current_iteration_;
     } 
     void resetCurrentIterations()
     {
-        std::lock_guard<std::mutex> lock{iteration_mutex_};
         current_iteration_ = 0;
     }
 };
@@ -173,10 +175,18 @@ public:
     {
         info_.incrementCurrentRepetition();
     }
+    size_t getTotalIterationsCount() const
+    {
+        return info_.getTotalIterationsCount();
+    }
+    size_t getTotalRepetitionsCount() const
+    {
+        return info_.getTotalRepetitionsCount();
+    }
 };
 
 
-class ActionsInvoker
+class ActionsInvoker//one for one operation
 {
 private:
     ExpectedActions& expected_actions_;
@@ -189,6 +199,7 @@ public:
     {}
     void invokeOperation()
     {
+        //here must be sth pending obj
         expected_actions_.operation();
     }
 };
@@ -199,11 +210,12 @@ private:
     OperationInfoUpdater updater_;
     ActionsInvoker invoker_;
 public:
-    OperationLoop(OptionalActions& expected_actions_,
-                  ExpectedActions& required_actions_,
+    OperationLoop(ExpectedActions& expected_actions,
+                  OptionalActions& optional_actions,
                   OperationInfo&  info):
         updater_{info},
-
+        invoker_{expected_actions,
+                 optional_actions}
     {}
     void loop()
     {
