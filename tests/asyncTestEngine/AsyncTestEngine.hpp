@@ -47,6 +47,7 @@ public:
 
 class OptionalActions
 {
+public:
     virtual void prepareData() {}
     virtual void workload() {}
     virtual void delay() {}
@@ -185,6 +186,16 @@ public:
     }
 };
 
+using Indicator = std::shared_future<void>;
+
+class SystemMonitor
+{
+private:
+    Indicator system_ready_indicator_;
+    std::atomic_uint64_t operations_count_;
+public:
+
+};
 
 class ActionsInvoker//one for one operation
 {
@@ -199,7 +210,10 @@ public:
     {}
     void invokeOperation()
     {
+        optional_actions_.prepareData();
+        optional_actions_.workload();
         //here must be sth pending obj
+        optional_actions_.delay();
         expected_actions_.operation();
     }
 };
@@ -232,8 +246,7 @@ private:
 
 class SystemSharedResources
 {
-private:
-    std::condition_variable system_guardian_;
+
 };
 
 class PendingObject
@@ -243,11 +256,6 @@ private:
 };
 
 class OperationExecuter
-{
-
-};
-
-class SystemMonitor
 {
 
 };
@@ -263,10 +271,11 @@ public:
 
 };
 
+template<typename TestedObject>
 class System
 {
 public:
-    void registerOperation()
+    void registerOperation(TestedOperation<TestedObject>& operation)
     {
 
     }
