@@ -15,7 +15,6 @@
 
 using Table = ThreadsafeHashTable<size_t,size_t>;
 using Signal = boost::signals2::signal<void ()>;
-using Connection = boost::signals2::connection;
 
 template<typename TestedObject>
 class ObjectBuilder
@@ -138,16 +137,24 @@ class TestedOperation:
     public OptionalActions,
     public ExpectedActions
 {
+    using Connections = ObjectProxy<TestedObject>&;
     template<typename TestedObject>
     friend class ConnectionMaker;
 private:
-    size_t operation_id_;
+    std::atomic_uint64_t operation_id_;
     OperationInfo info_;
-    ObjectProxy<TestedObject>& proxy_;
+    std::shared_ptr<ObjectProxy<TestedObject>> proxy_;
 public:
+    TestedOperation():
+        operation_id{},
+        info_{},
+        proxy_{}
+    {}
     TestedObject& getTestedObject()
     {
-        return proxy_.getObject();
+        if (proxy_ != nullptr)
+            return proxy_.getObject();
+        else throw std::runtime_error("TestedOperation : operation not connected to the system!");
     }
 };
 
@@ -194,7 +201,14 @@ private:
     Indicator system_ready_indicator_;
     std::atomic_uint64_t operations_count_;
 public:
-
+    size_t getOperationsCount()
+    {
+        return operations_count_;
+    }
+    void incrementOperationsCount()
+    {
+        ++operations_count_;
+    }
 };
 
 class ActionsInvoker//one for one operation
@@ -271,25 +285,46 @@ public:
 
 };
 
-template<typename TestedObject>
-class System
-{
-public:
-    void registerOperation(TestedOperation<TestedObject>& operation)
-    {
-
-    }
-};
-
 //So, maybe some friend declarations ?
 
 //this class below makes the connections between the system and a TestedOperation
 template<typename TestedObject>//builder interface
 class ConnectionMaker
 {
+private:
+    SystemSharedResources& resources_;
+private:
+    void configureOperation(TestedOperation<TestedObject>& operation)
+    {
+        operation.
+    }
 public:
-    ~ConnectionMaker() {}
-    OperationConnections makeConnection(TestedOperation<TestedObject>& operation)
+    ~ConnectionMaker(SystemSharedResources& resources) {}
+};
+
+template<typename TestedObject>
+class OperationsProxy
+{
+private:
+    ThreadsafeHashTable<size_t,TestedObject>
+};
+
+template<typename TestedObject>
+class System
+{
+private:
+    ConnectionMaker<TestedObject> connection_maker_;
+private:
+    void updateRecentOperations()
+    {
+
+    }
+public:
+    void registerOperation(TestedOperation<TestedObject>& operation)
+    {
+
+    }
+    void run()
     {
 
     }
@@ -303,8 +338,17 @@ private:
     ObjectProxy<TestedObject> proxy_;
     ConnectionMaker connection_maker_;
 public:
-    virtual bool isTestExecutued() const = 0 ;
-    virtual void runTest() = 0;
+    virtual bool isTestExecutued() const
+    {
+
+    }
+    virtual void runTest()
+    {
+        system_.run();
+    }
     virtual ~AsyncTest() {}
-    void registerOperation()
+    void registerOperation(ObjectProxy<TestedObject>& operation)
+    {
+
+    }
 };
