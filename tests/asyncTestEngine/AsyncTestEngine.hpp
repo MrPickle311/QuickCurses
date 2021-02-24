@@ -193,24 +193,6 @@ public:
     }
 };
 
-using Indicator = std::shared_future<void>;
-
-class SystemMonitor
-{
-private:
-    Indicator system_ready_indicator_;
-    std::atomic_uint64_t operations_count_;
-public:
-    size_t getOperationsCount()
-    {
-        return operations_count_;
-    }
-    void incrementOperationsCount()
-    {
-        ++operations_count_;
-    }
-};
-
 class ActionsInvoker//one for one operation
 {
 private:
@@ -229,6 +211,24 @@ public:
         //here must be sth pending obj
         optional_actions_.delay();
         expected_actions_.operation();
+    }
+};
+
+using Indicator = std::shared_future<void>;
+
+class SystemMonitor
+{
+private:
+    Indicator system_ready_indicator_;
+    std::atomic_uint64_t operations_count_;
+public:
+    size_t getOperationsCount()
+    {
+        return operations_count_;
+    }
+    void incrementOperationsCount()
+    {
+        ++operations_count_;
     }
 };
 
@@ -251,15 +251,10 @@ public:
     }
 };
 
-class OperationConnections
-{
-private:
-     ActionsInvoker invoker_;
-     OperationInfoUpdater updater_;
-};
-
 class SystemSharedResources
 {
+private:
+    SystemMonitor monitor_;
 
 };
 
@@ -280,7 +275,8 @@ private:
     SystemSharedResources& resources_;
     OperationExecuter executer_;
     PendingObject pending_object_;
-    OperationConnections connections;
+    ActionsInvoker invoker_;
+    OperationInfoUpdater updater_;
 public:
 
 };
@@ -306,7 +302,14 @@ template<typename TestedObject>
 class OperationsProxy
 {
 private:
-    ThreadsafeHashTable<size_t,TestedObject>
+    ThreadsafeHashTable<size_t,TestedObject> operations_;
+private:
+    void updateRecentOperations()
+    {
+        
+    }
+public:
+
 };
 
 template<typename TestedObject>
@@ -314,11 +317,6 @@ class System
 {
 private:
     ConnectionMaker<TestedObject> connection_maker_;
-private:
-    void updateRecentOperations()
-    {
-
-    }
 public:
     void registerOperation(TestedOperation<TestedObject>& operation)
     {
