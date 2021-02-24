@@ -328,25 +328,37 @@ public:
     }
 };
 
+class AsyncTestSupportActions
+{
+public:
+    void actionsBeforeTest() {}
+    void actionsAfterTest() {}
+};
+
 template<typename TestedObject>
-class AsyncTest
+class AsyncTest:
+    public AsyncTestSupportActions
 {
 private:
     System system_;
     ObjectProxy<TestedObject> proxy_;
     ConnectionMaker connection_maker_;
 public:
-    virtual bool isTestExecutued() const
+    bool isTestExecutued() const
     {
 
     }
-    virtual void runTest()
+    void runTest()
     {
+        this->actionsBeforeTest();
         system_.run();
+        this->actionsAfterTest();
     }
     virtual ~AsyncTest() {}
-    void registerOperation(ObjectProxy<TestedObject>& operation)
+    void registerOperation(std::shared_ptr<TestedOperation<TestedObject>> operation)
     {
-
+        if (operation != nullptr)
+            system_.registerOperation(operation);
+        else throw std::runtime_error("AsyncTest: trying to register nullptr operation!");
     }
 };
