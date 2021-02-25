@@ -1,12 +1,10 @@
 #include <boost/signals2.hpp>
 #include "ThreadsafeHashTable.hpp"
 
-#include <future>
 #include <mutex>
 #include <shared_mutex>
 #include <condition_variable>
-#include <atomic>
-
+#include "Operation.hpp"
 //każde dołączenie jakiejś operacji generuje nowy slot w hash_table 
 //każda operacja będzie mieć swój identyfikator oraz swój sygnał
 
@@ -16,147 +14,6 @@
 using Table = ThreadsafeHashTable<size_t,size_t>;
 using Signal = boost::signals2::signal<void ()>;
 
-template<typename TestedObject>
-class ObjectBuilder
-{
-public:
-    template<typename ... Args>
-    static TestedObject build(Args... args)//place here constructor arguements
-    {
-        return TestedObject{args...};
-    }
-};
-
-template<typename TestedObject>
-class ObjectProxy 
-{
-private:
-    TestedObject obj_;
-public:
-    template<typename... Args>
-    ObjectProxy(Args... args):
-        obj_{ObjectBuilder<TestedObject>::build(args...)}
-    {}
-    virtual ~ObjectProxy() {}
-    TestedObject& getObject()
-    {
-        return obj_;
-    }
-};
-
-class OptionalActions
-{
-public:
-    virtual void prepareData() {}
-    virtual void workload() {}
-    virtual void delay() {}
-};
-
-class ExpectedActions
-{
-public:
-    virtual void operation() = 0; //defined by user
-};
-
-class RepetitionInfo
-{
-    friend class OperationInfoUpdater;
-private:
-    std::atomic_uint64_t total_repetitions_count_;
-    std::atomic_uint64_t current_repetition_;
-public:
-    RepetitionInfo():
-        total_repetitions_count_{0},
-        current_repetition_{0}
-    {}
-    size_t getTotalRepetitionsCount() const //do not show implementation details
-    {
-        return total_repetitions_count_;
-    }
-    void incrementCurrentRepetition()
-    {
-        if( ++current_repetition_ < total_repetitions_count_ )
-            ++current_repetition_;
-        else throw std::out_of_range{"RepetitionInfo : current_repetition_ >= total_repetitions_count_ ! "};
-    }
-    size_t getCurrentRepetition() const
-    {
-        return current_repetition_;
-    }
-    void setRepetitionsCount(size_t count)
-    {
-        total_repetitions_count_ = count;
-    }
-};
-
-class IterationInfo
-{
-    friend class OperationInfoUpdater;
-private:
-    std::atomic_uint64_t current_iteration_;
-    std::atomic_uint64_t total_iterations_nmbr_;
-public:
-    IterationInfo():
-        current_iteration_{0}
-    {}
-    size_t getTotalIterationsCount() const
-    {
-        return total_iterations_nmbr_;
-    }
-    void setTotalIterationsCount(size_t count)
-    {
-        total_iterations_nmbr_ = count;
-    } 
-    size_t getCurrentIteration() const
-    {
-        return current_iteration_;
-    }
-    void incrementCurrentIteration()
-    {
-        ++current_iteration_;
-    } 
-    void resetCurrentIterations()
-    {
-        current_iteration_ = 0;
-    }
-};
-
-//each operation will have 3 signals
-//first for incrementCurrentRepetition()
-//second for incrementCurrentIteration()
-//thrid for resetCurrentIteration()
-
-class OperationInfo:
-    public IterationInfo,
-    public RepetitionInfo
-{};
-
-//constructor of below class takes a connection in the constructor
-template<typename TestedObject>
-class TestedOperation:
-    public OptionalActions,
-    public ExpectedActions
-{
-    using Connections = ObjectProxy<TestedObject>&;
-    template<typename TestedObject>
-    friend class ConnectionMaker;
-private:
-    std::atomic_uint64_t operation_id_;
-    OperationInfo info_;
-    std::shared_ptr<ObjectProxy<TestedObject>> proxy_;
-public:
-    TestedOperation():
-        operation_id{},
-        info_{},
-        proxy_{}
-    {}
-    TestedObject& getTestedObject()
-    {
-        if (proxy_ != nullptr)
-            return proxy_.getObject();
-        else throw std::runtime_error("TestedOperation : operation not connected to the system!");
-    }
-};
 
 ////////////////////////////////
 
@@ -214,21 +71,27 @@ public:
     }
 };
 
-using Indicator = std::shared_future<void>;
-
 class SystemMonitor
 {
 private:
-    Indicator system_ready_indicator_;
-    std::atomic_uint64_t operations_count_;
+    std::shared_future<void> system_ready_indicator_;
+    std::atomic_uint64_t     operations_count_;
 public:
-    size_t getOperationsCount()
+    SystemMonitor(std::promise<void>& system_ready_gate):
+        system_ready_indicator_{system_ready_gate.get_future()},
+        operations_count_{0}
+    {}
+    size_t getOperationsCount() const
     {
         return operations_count_;
     }
     void incrementOperationsCount()
     {
         ++operations_count_;
+    }
+    void waitForSystemReady()
+    {
+        system_ready_indicator_.wait();
     }
 };
 
@@ -251,11 +114,23 @@ public:
     }
 };
 
+template<typename TestedObject>
 class SystemSharedResources
 {
 private:
     SystemMonitor monitor_;
-
+    ObjectProxy<TestedObject> proxy_;//variadic template constructor
+public:
+    template<typename... Args>
+    SystemSharedResources(std::promise<void>& system_ready_gate,
+                          Args... args):
+        monitor_{system_ready_gate},
+        proxy_{args...}
+    {}
+    ObjectProxy<TestedObject>& getProxy()
+    {
+        return proxy_;
+    }
 };
 
 class PendingObject
@@ -269,7 +144,8 @@ class OperationExecuter
 
 };
 
-class OperationManager
+template<typename TestedObject>
+class OperationManager // i need to split this class 
 {
 private:
     SystemSharedResources& resources_;
@@ -277,8 +153,10 @@ private:
     PendingObject pending_object_;
     ActionsInvoker invoker_;
     OperationInfoUpdater updater_;
+    std::atomic_uint64_t index_;
+    OperationPtr operation_;
 public:
-
+    size_t getIndex() const { return index_; }
 };
 
 //So, maybe some friend declarations ?
@@ -289,12 +167,15 @@ class ConnectionMaker
 {
 private:
     SystemSharedResources& resources_;
-private:
+public:
+    ConnectionMaker(SystemSharedResources& resources):
+        resources_{resources}
+    {}
     void configureOperation(TestedOperation<TestedObject>& operation)
     {
-        operation.
+        operation.setConnectionToSystem(resources_.)
     }
-public:
+
     ~ConnectionMaker(SystemSharedResources& resources) {}
 };
 
@@ -302,23 +183,29 @@ template<typename TestedObject>
 class OperationsProxy
 {
 private:
-    ThreadsafeHashTable<size_t,TestedObject> operations_;
+    ThreadsafeHashTable<size_t,OperationManager<TestedOperation<TestedObject>>> operations_;
 private:
     void updateRecentOperations()
     {
         
     }
 public:
-
+    OperationsProxy()
+    {}
 };
 
 template<typename TestedObject>
 class System
 {
 private:
+    SystemSharedResources<TestedObject> resources_;
     ConnectionMaker<TestedObject> connection_maker_;
+    //put here object which contains promise
 public:
-    void registerOperation(TestedOperation<TestedObject>& operation)
+    template<typename... Args>
+    System(Args... args):
+    //i finished here
+    void registerOperation(OperationPtr operation)
     {
 
     }
@@ -340,22 +227,31 @@ class AsyncTest:
     public AsyncTestSupportActions
 {
 private:
+    std::atomic_bool running_flag_;
     System system_;
-    ObjectProxy<TestedObject> proxy_;
-    ConnectionMaker connection_maker_;
 public:
+    template<typename... Args>
+    AsyncTest(Args... args):
+        AsyncTestSupportActions{},
+        running_flag_{false},
+        system_{args...}
+    {}
     bool isTestExecutued() const
     {
-
+        return running_flag_;
     }
     void runTest()
     {
-        this->actionsBeforeTest();
-        system_.run();
-        this->actionsAfterTest();
+        if(!isTestExecutued())
+        {
+            running_flag_ = true;
+            this->actionsBeforeTest();
+            system_.run();
+            this->actionsAfterTest();
+        }
     }
     virtual ~AsyncTest() {}
-    void registerOperation(std::shared_ptr<TestedOperation<TestedObject>> operation)
+    void registerOperation(OperationPtr operation)
     {
         if (operation != nullptr)
             system_.registerOperation(operation);
