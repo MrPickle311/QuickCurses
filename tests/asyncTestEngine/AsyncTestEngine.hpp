@@ -194,13 +194,30 @@ public:
     {}
 };
 
+class SystemGateMonitor
+{
+private:
+    std::promise<void> system_ready_gate_;
+public:
+    SystemGateMonitor()
+    {}
+    void setSystemReady()
+    {
+        system_ready_gate_.set_value();
+    }
+    std::shared_future<void> getConnectionToGate()
+    {
+        return system_ready_gate_.get_future();
+    }
+};
+
 template<typename TestedObject>
 class System
 {
 private:
+    SystemGateMonitor gate_;
     SystemSharedResources<TestedObject> resources_;
     ConnectionMaker<TestedObject> connection_maker_;
-    //put here object which contains promise
 public:
     template<typename... Args>
     System(Args... args):
