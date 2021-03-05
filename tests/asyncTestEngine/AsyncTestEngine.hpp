@@ -32,7 +32,7 @@ public:
     {
         info_.resetCurrentIterations();
     }
-    void invcrementIteration()
+    void incrementIteration()
     {
         info_.incrementCurrentIteration();
     }
@@ -50,24 +50,23 @@ public:
     }
 };
 
-class ActionsInvoker//one for one operation
+class OptionalActionsInvoker//one for one operation
 {
 private:
-    ExpectedActions& expected_actions_;
     OptionalActions& optional_actions_;
 public:
-    ActionsInvoker(ExpectedActions& expected_actions,
+    OptionalActionsInvoker(ExpectedActions& expected_actions,
                    OptionalActions& optional_actions):
-        expected_actions_{expected_actions},
         optional_actions_{optional_actions}
     {}
-    void invokeOperation()
+    void invokePreActions()
     {
         optional_actions_.prepareData();
         optional_actions_.workload();
-        //here must be sth pending obj
+    }
+    void invokePostActions()
+    {
         optional_actions_.delay();
-        expected_actions_.operation();
     }
 };
 
@@ -75,42 +74,13 @@ class SystemMonitor
 {
 private:
     std::shared_future<void> system_ready_indicator_;
-    std::atomic_uint64_t     operations_count_;
 public:
-    SystemMonitor(std::promise<void>& system_ready_gate):
-        system_ready_indicator_{system_ready_gate.get_future()},
-        operations_count_{0}
+    SystemMonitor(std::shared_future<void> system_ready_gate):
+        system_ready_indicator_{system_ready_gate}
     {}
-    size_t getOperationsCount() const
-    {
-        return operations_count_;
-    }
-    void incrementOperationsCount()
-    {
-        ++operations_count_;
-    }
     void waitForSystemReady()
     {
         system_ready_indicator_.wait();
-    }
-};
-
-class OperationLoop
-{
-private:
-    OperationInfoUpdater updater_;
-    ActionsInvoker invoker_;
-public:
-    OperationLoop(ExpectedActions& expected_actions,
-                  OptionalActions& optional_actions,
-                  OperationInfo&  info):
-        updater_{info},
-        invoker_{expected_actions,
-                 optional_actions}
-    {}
-    void loop()
-    {
-        
     }
 };
 
@@ -122,7 +92,7 @@ private:
     ObjectProxy<TestedObject> proxy_;//variadic template constructor
 public:
     template<typename... Args>
-    SystemSharedResources(std::promise<void>& system_ready_gate,
+    SystemSharedResources(std::shared_future<void> system_ready_gate,
                           Args... args):
         monitor_{system_ready_gate},
         proxy_{args...}
@@ -133,26 +103,58 @@ public:
     }
 };
 
-class PendingObject
+template<typename TestedObject>
+class OperationLoop
 {
 private:
-    
-};
+    SystemSharedResources<TestedObject>& resources_;
+    OperationInfoUpdater updater_;
+    OptionalActionsInvoker invoker_;
+    ExpectedActions& expected_actions_;
+private:
+    void loopUnit()
+    {
+        invoker_.invokePreActions();
+        /*TODO
+            Make signal notifications system
+            Maybe observer pattern ?
+        */
 
-class OperationExecuter
-{
-
+        resources_.monitor_.waitForSystemReady();
+        for(std::atomic_int64_t i{0}; i < updater_.getTotalIterationsCount(); ++i)
+        {
+            expected_actions_.operation();
+            updater_.incrementIteration();
+        }
+        invoker_.invokePostActions();
+    }
+public:
+    OperationLoop(ExpectedActions& expected_actions,
+                  OptionalActions& optional_actions,
+                  OperationInfo&  info):
+        updater_{info},
+        invoker_{expected_actions,
+                 optional_actions},
+        expected_actions_{expected_actions}
+    {}
+    void loop()
+    {
+        for(std::atomic_int64_t i{0}; i < updater_.getTotalRepetitionsCount(); ++i)
+        {
+            loopUnit();
+            updater_.resetIterations();
+            updater_.incrementRepetition();
+        }
+    }
 };
 
 template<typename TestedObject>
-class OperationManager // i need to split this class 
+class OperationProxy // i need to split this class 
 {
 private:
     SystemSharedResources& resources_;
-    OperationExecuter executer_;
-    PendingObject pending_object_;
-    ActionsInvoker invoker_;
-    OperationInfoUpdater updater_;
+    OperationLoop loop_;
+
     std::atomic_uint64_t index_;
     OperationPtr operation_;
 public:
@@ -171,9 +173,9 @@ public:
     ConnectionMaker(SystemSharedResources& resources):
         resources_{resources}
     {}
-    void configureOperation(TestedOperation<TestedObject>& operation)
+    void configureOperation(OperationPtr operation)
     {
-        operation.setConnectionToSystem(resources_.)
+        operation->setConnectionToSystem(resources_.getProxy());
     }
 
     ~ConnectionMaker(SystemSharedResources& resources) {}
@@ -183,14 +185,19 @@ template<typename TestedObject>
 class OperationsProxy
 {
 private:
-    ThreadsafeHashTable<size_t,OperationManager<TestedOperation<TestedObject>>> operations_;
+    SystemSharedResources& resources_;
+    std::atomic_uint64_t current_index_;
+    ThreadsafeHashTable<size_t,OperationProxy<TestedOperation<TestedObject>>> operations_;
 private:
-    void updateRecentOperations()
+    void updateRecentOperations(OperationPtr operation)
     {
         
     }
 public:
-    OperationsProxy()
+    OperationsProxy(SystemSharedResources& resources):
+        resources_{resources},
+        current_index_{0},
+        operations_{}
     {}
 };
 
@@ -221,14 +228,16 @@ private:
 public:
     template<typename... Args>
     System(Args... args):
-    //i finished here
+        gate_{},
+        resources_{gate_.getConnectionToGate(),args...}
+    {}
     void registerOperation(OperationPtr operation)
     {
-
+        connection_maker_.configureOperation(operation);
     }
     void run()
     {
-
+        gate_.setSystemReady();
     }
 };
 
