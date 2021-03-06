@@ -5,7 +5,7 @@ docs
 .vscode
 # build
 build/
-
+/extern/
 #compiled surce
 *.exe
 *.a
