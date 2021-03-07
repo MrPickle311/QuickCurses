@@ -4,10 +4,15 @@ project(QuickCurses)
 
 set(CMAKE_CXX_STANDARD 17)
 #-fsanitize=thread niekompatybliny z pointerowymi sanitizerami ,więc trzeba ich używać zamiennie
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+if(SAN STREQUAL P)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+    set(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+elseif(SAN STREQUAL T)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -fsanitize=thread ")
+    set(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS_DEBUG} -fsanitize=thread ")
+endif()
 
-#przyspieszenie kompilacji
+#faster compiling
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
@@ -15,10 +20,9 @@ endif()
 
 message("Looking for libraries...")
 find_package(Curses REQUIRED)
-find_package(GTest REQUIRED)
 
-set(EXTERNAL_PACKAGES_LIST "GTest" "ncurses" "curses" )
-set(FIND_COMMANDS "GTEST_FOUND" "NCURSES_FOUND" "CURSES_FOUND")
+set(EXTERNAL_PACKAGES_LIST  "ncurses" "curses" )
+set(FIND_COMMANDS  "NCURSES_FOUND" "CURSES_FOUND")
 
 list(LENGTH EXTERNAL_PACKAGES_LIST PACKAGES_NMBR)
 list(LENGTH FIND_COMMANDS COMMANDS_NMBR)
@@ -63,10 +67,14 @@ target_link_libraries(QuickCurses
                       pthread
                       )
 
-target_link_directories(QuickCurses PUBLIC
+target_include_directories(QuickCurses PUBLIC
                         ${INCLUDE_DIRS}
                         )
 
-if("true")
+if(NOT DEFINED TESTS)
+    set(TESTS "OFF")
+endif()
+
+if(${TESTS} STREQUAL "ON")
     add_subdirectory(tests)
 endif()
