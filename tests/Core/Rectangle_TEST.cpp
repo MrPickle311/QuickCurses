@@ -31,10 +31,108 @@ protected:
     {
         return engine_.getRootHook();
     }
+    size_t getConnectedWindowsCount()
+    {
+    size_t count {0};
+        for(auto& e: rectangles)
+            if(e.isConnected())
+                ++count;
+        return count;
+    }
 };
 
+struct RectangleParametersBase
+{
+    Size terminal_size_;
+    bool should_except_;
+};
+
+struct RectangleSizePointParameters:
+    public RectangleParametersBase
+{
+    Size rec_size_;
+    Point rec_point_;  
+};
+
+struct RectanglePoinPiontParameters:
+    public RectangleParametersBase
+{
+    Point rec_point_1;
+    Point rec_point_2;
+};
+
+class RectangleSizePointTests:
+    public TestBase,
+    public testing::TestWithParam<RectangleSizePointParameters>
+{};
+
+class RectanglePointPointTests:
+    public TestBase,
+    public testing::TestWithParam<RectanglePoinPiontParameters>
+{};
+
+
+TEST_P(RectangleSizePointTests,ConstructorAndBorderTest)
+{
+    RectangleSizePointParameters const& param = GetParam(); 
+    this->initEngine(param.terminal_size_});
+
+    if(param.should_except_)
+        EXPECT_THROW(this->addRectangle(param.rec_size_,param.rec_point_,this->getParent()),OutOfTerminal);
+    else EXPECT_NO_THROW(this->addRectangle(param.rec_size_,param.rec_point_,this->getParent()));
+}
+
+INSTANTIATE_TYPED_TEST_CASE_P(BasicTests,RectangleSizePointTests,::testing::Values(
+    //constructor requires size_t ,so rectangle cannot fly through upper and left border
+    RectangleSizePointParameters{ { {200,200} , false } , { {Size{XSize{40},YSize{20}}} , {Point{XCord{0},YCord{0}}} } },
+    RectangleSizePointParameters{ { {200,200} , false } , { {Size{30,30}} , {Point{50,40}} } },
+    //so if right border of a rectangle will cross the border of the screen 
+    //system will throw an exception with following type : OutOfTerminal exception
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{30,30} , Point{200,200} } },
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{30,30} , Point{20,180} } },
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{30,30} , Point{180,20} } },
+    //single-cell rectangle
+    RectangleSizePointParameters{ { {200,200} , false } , { Size{1,1},Point{199,199} } },
+    //size argument must be >= 1
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{0,1},Point{199,199} } },
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{1,0},Point{199,199} } },
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{0,0},Point{199,199} } },
+    //point argument must be >= 0
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{1,1},Point{-1,199} } },
+    RectangleSizePointParameters{ { {200,200} , true } , { Size{1,1},Point{199,-2} } },
+    RectangleSizePointParameters{ { {200,200} , false } , { Size{1,1},Point{199,199} } },
+    RectangleSizePointParameters{ { {200,200} , false } , { Size{1,1},Point{199,199} } }
+
+));
+
+
+TEST_P(RectanglePointPointTests,BorderTest)
+{
+    RectanglePoinPiontParameters const& param = GetParam(); 
+    this->initEngine(param.terminal_size_});
+
+    if(param.should_except_)
+        EXPECT_THROW(this->addRectangle(param.rec_point_1,param.rec_point_2,this->getParent()),BadCords);
+    else EXPECT_NO_THROW(this->addRectangle(param.rec_point_1,param.rec_point_2,this->getParent()));
+
+}
+
+INSTANTIATE_TYPED_TEST_CASE_P(BasicTests,RectanglePointPointTests,::testing::Values(
+    //to fix some bugs Rectangle provides constructor which takes two Points 
+    RectanglePoinPiontParameters{ { {200,200} , false } , { Point{150,150},Point{199,199} } },
+    RectanglePoinPiontParameters{ { {200,200} , false } , { Point{0,0},Point{199,199} } },
+    RectanglePoinPiontParameters{ { {200,200} , false } , { Point{150,150},Point{150,150} } },
+     //following statements should throw bcs right-bottom corner has cords closer to the origin
+    RectanglePoinPiontParameters{ { {200,200} , true } , { Point{150,180},Point{20,150} } },
+    RectanglePoinPiontParameters{ { {200,200} , true } , { Point{180,150},Point{20,150} } },
+    RectanglePoinPiontParameters{ { {200,200} , true } , { Point{180,180},Point{150,150} } }
+));
+
+/*TODO
+    MAKE THE FOLLOWING TESTS 
+*/
+//Make the other tests
 class MovingTest:
-    public testing::Test,
     public TestBase
 {
 protected:
@@ -63,30 +161,6 @@ protected:
         return rectangles[i].canMoveDown();
     }
 };
-
-TEST_F(MovingTest,BorderTest)
-{
-    this->initEngine(Size{XSize{200},YSize{200}});
-    this->addRectangle(Size{XSize{40},YSize{20}},Point{XCord{0},YCord{0}},this->getParent());
-    this->addRectangle(Size{30,30},Point{50,40},this->getParent());
-    //constructor requires size_t ,so rectangle cannot fly through upper and left border
-    
-    //so if right border of a rectangle will cross the border of the screen 
-    //system will throw an exception with following type : OutOfTerminal exception
-    EXPECT_THROW(this->addRectangle(Size{30,30},Point(200,200),this->getParent(),OutOfTerminal));
-    EXPECT_THROW(this->addRectangle(Size{30,30},Point(20,180),this->getParent(),OutOfTerminal));
-    EXPECT_THROW(this->addRectangle(Size{30,30},Point(180,20),this->getParent(),OutOfTerminal));
-
-    //to fix  it Rectangle provides constructor which takes two Points 
-    EXPECT_NO_THROW(this->addRectangle(Point{150,150},Point{199,199}));
-    EXPECT_NO_THROW(this->addRectangle(Point{0,0},Point{199,199}));
-    EXPECT_NO_THROW(this->addRectangle(Point{150,150},Point{150,150})); //single-cell rectangle
-
-    //following statements should throw bcs right-bottom corner has cords closer to the origin
-    EXPECT_THROW(this->addRectangle(Point{150,180},Point(20,150),this->getParent(),BadCords));
-    EXPECT_THROW(this->addRectangle(Point{180,150},Point(20,150),this->getParent(),BadCords));
-    EXPECT_THROW(this->addRectangle(Point{180,180},Point(150,150),this->getParent(),BadCords));
-}
 
 //Testing binding and relative positioning 
 class BindingTest:
