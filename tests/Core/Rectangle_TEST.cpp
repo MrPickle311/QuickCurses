@@ -33,6 +33,20 @@ protected:
     {
         return engine_;
     }
+    void cloneSomeRectangles(CompositeObject& target,size_t rec_count,
+                       Point first_point = {50,50},Point second_point = {50,50})
+    {
+        for(size_t i{0}; i < rec_count; ++i)
+            addRectangle(first_point,second_point,target);
+    }
+    void addShiftedRectangles(Rectangle& target,size_t rec_count,
+                              Point start_point = {50,50},Size size = {50,50},
+                              size_t shift = 1)
+    {
+        for(size_t i{0}; i < rec_count ;++i)
+            addRectangle(size,start_point.move( -1 * shift, -1 * shift),target);
+    }
+
 };
 
 struct RectangleParametersBase
@@ -132,25 +146,18 @@ void testCompositeObjConnections(CompositeObject& obj,size_t rec_count)
     ASSERT_EQ(rec_count,obj.getChildrenCount());
 }
 
-void addSomeRectangles(CompositeObject& target,size_t rec_count,
-                       Point first_point = {50,50},Point second_point = {50,50})
-{
-    for(size_t i{0}; i < rec_count; ++i)
-        this->addRectangle(first_point,second_point,target);
-}
-
 TEST_F(RectangleNoThrowTests,ConnectionsTest)
 {
     this->initEngine(Size{200,200});
     size_t rec_count = 10;
-    addSomeRectangles(this->getEngine(),rec_count);
+    cloneSomeRectangles(this->getEngine(),rec_count);
     
     testCompositeObjConnections(this->getEngine(),rec_count);
     for(auto& rec: this->rectangles)
     {
         //here base space isn't space of terminal(200x200) but it's 50x50
         //inside parent rectangle
-        addSomeRectangles(rec,rec_count,Point{0,0},Point{25,25});
+        cloneSomeRectangles(rec,rec_count,Point{0,0},Point{25,25});
         testCompositeObjConnections(rec,rec_count);
     }
 };
@@ -168,7 +175,7 @@ TEST_F(RectangleNoThrowTests,BrowsingTest)
     this->initEngine(Size{200,200});
 
     size_t rec_count = 10;
-    addSomeRectangles(this->getEngine(),rec_count);
+    cloneSomeRectangles(this->getEngine(),rec_count);
     
     // library provides special container for Rectangles which is safe and easy in use
     // (impl: pointers to rectangles)
@@ -190,49 +197,99 @@ TEST_F(RectangleNoThrowTests,BrowsingTest)
     for(auto& rec: this->rectangles)
         for(size_t i{0}; i < rec_count; ++i)
         {
-            this->addSomeRectangles(rec,rec_count,Point{15,15},Point{25,25});
+            this->cloneSomeRectangles(rec,rec_count,Point{15,15},Point{25,25});
             RectanglesList tempList {rec.getChildrenList(())};
             ASSERT_FALSE(tempList.empty());
             EXPECT_NO_THROW(browse(tempList,testFunction);//expect bcs its leaf of the dependency tree
         }
 };
 
+class MovingTest:
+    public TestBase
+{
+protected:
+
+};
+
+void testPairOrder(Rectangle& to_hide_rec,Rectangle& test_rec,size_t expected_order)
+{
+    //hiding and showing rectangles does not change moveUp-moveDown order
+    ASSERT_NO_THROW(to_hide_rec.hide());
+    EXPECT_EQ(test_rec.getOrder(),expected_order);
+    ASSERT_NO_THROW(to_hide_rec.show());
+}
+
+void testSingleOrder(Rectangle& rec,size_t expected_order)
+{
+    //hiding and showing rectangles does not change moveUp-moveDown order
+    testPairOrder(rec,rec,expected_order);
+}
+
+void testTopBottomRectangles(Rectangle& top,Rectangle& bottom)
+{
+    //if top Rectangle tries move up or bottom Rectangle tries move down,
+    // it's nothing happens
+    ASSERT_NO_THROW(bottom.moveDown());
+    ASSERT_NO_THROWt(top.moveUp());
+}
+
+TEST_F(MovingTest,FlatHideShowTest)
+{
+    this->initEngine(Size{200,200});
+
+    size_t rectangles_count  {7};
+    addShiftedRectangles(this->getEngine(),rectangles_count);
+    
+    //Every CompositeObject hold inside a list of children -> known
+    //Only rectangles in single list have moveDown - moveUp relation
+    
+     //for example here  Rectangle 0-2 is hidden and Rectangle 2 is being tested
+    for(size_t i{0}; i < rectangles_count_ ;++i)
+        for(size_t j{0}; j < rectangles_count_ ;++j)
+            testPairOrder(this->getRectangle(j),this->getRectangle(i),i); 
+};
+
+
+TEST_F(MovingTest,CompositeHideShowTest)
+{
+    //All Rectangles implements composite pattern ,so 
+    //no matter what certain Rectangle is, group actions
+    //should work recursively
+    this->initEngine(Size{200,200});
+
+    size_t rectangles_count  {7};
+    addShiftedRectangles(this->getEngine(),rectangles_count);
+
+    for(auto& rec: this->rectangles_)
+        addShiftedRectangles(rec,rectangles_count,Point{40,40},Size{10,10});
+
+    RectanglesList temp_list {};
+    
+    //if CompositeObject is hidden , him children too
+    for(auto& rec: this->rectangles_)
+    {
+        temp_list = rec.getChilredList();
+        rec.hide();
+        //returns true if parent, and its all children are hidden
+        //(impl: recursive)
+        EXPECT_TRUE(temp_list.isHidden());
+    }
+};
+
+TEST_F(MovingTest,OrderingTest)
+{
+    //0 - is bottom index, here 2 is top index 
+    testTopBottomRectangles(this->getRectangle(2),this->getRectangle(0));
+};
 /*TODO
     MAKE THE FOLLOWING TESTS ;
     DEFINE OPERATION PACKAGE AND WRITE TESTS FOR OPERATIONS ON LISTS
     PARENTS IMPLEMENTS BROWSE OPERATION DIRECTLY : rec.browseChildren(...)
     BUT FIRST WRITE 
+    /////////////////
+    AFTER UNIT TESTS MAKE COMPLEX TESTS
 */
 //Make the other tests
-class MovingTest:
-    public TestBase
-{
-protected:
-    void moveRectangle(size_t index,Point where)
-    {
-        rectangles[i].move(where);
-    }
-    void hideRectangle(size_t index)
-    {
-        rectangles[i].hide();
-    }
-    bool isHidden(size_t index) const
-    {
-        return rectangles[i].isHidden();
-    }
-    bool isShown(size_t index) const
-    {
-        return rectangles[i].isShown();
-    }
-    void moveDown(size_t index)
-    {
-        rectangles[i].moveDown();
-    }
-    bool canMoveDown(size_t index)
-    {
-        return rectangles[i].canMoveDown();
-    }
-};
 
 //Testing binding and relative positioning 
 class BindingTest:
