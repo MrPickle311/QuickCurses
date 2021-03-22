@@ -2,6 +2,7 @@ message("Loading tests/Core module...")
 
 set(TestLibs
      ThreadsafeQueue
+     ThreadsafeList
      ThreadPool
      ncurses
     )

@@ -4,7 +4,7 @@ project(QuickCurses)
 
 set(CMAKE_CXX_STANDARD 17)
 #-fsanitize=thread niekompatybliny z pointerowymi sanitizerami ,więc trzeba ich używać zamiennie
-if(SAN STREQUAL P)
+if(SAN STREQUAL M)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
     set(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 elseif(SAN STREQUAL T)

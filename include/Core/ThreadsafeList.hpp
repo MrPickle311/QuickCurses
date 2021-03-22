@@ -3,11 +3,15 @@
 #include <mutex>
 #include <memory>
 #include <algorithm>
+#include <atomic>
+#include <functional>
 
 template<typename T>
 class ThreadsafeList
 {
 private:
+    std::atomic_uint64_t size_;
+
     struct Node
     {
         mutable std::mutex mutex_;
@@ -31,7 +35,7 @@ public:
 
     ~ThreadsafeList()
     {
-        remove_if([](Node const& )
+        removeIf([](Node const& )
         {
             return true;
         });
@@ -48,11 +52,11 @@ public:
         new_node->next_ = std::move(head_.next_);
         //put new_node to the top of the list
         head_.next = std::move(new_node);//head.next points to new_node
+        ++size_;
     }
 
-
-    template<typename Function>// void(T)
-    void forEach(Function function)
+    //please , do not use deleting functions , it will destroy this list
+    void forEach(std::function<void(T)> function)
     {
         Node* current = &head_;
         std::unique_lock<std::mutex> lock{head_.mutex_};//lock head
@@ -66,11 +70,10 @@ public:
         }
     }
 
-    template<typename Predicate>// bool(T)
-    std::shared_ptr<T> findFirstIf(Predicate predicate)
+    std::shared_ptr<T> findFirstIf(std::function<bool(T)> predicate)
     {   
         Node* current = &head_;
-        std::unique_lock<std::mutex> lock{head.mutex_};
+        std::unique_lock<std::mutex> lock{head_.mutex_};
         while(Node* const next {current->next_.get()})
         {
             std::unique_lock<std::mutex> next_lock{next->mutex_};
@@ -83,11 +86,10 @@ public:
         return std::shared_ptr<T>{};
     }
 
-    template<typename Predicate>
-    void removeIf(Predicate predicate)
+    void removeIf(std::function<bool(T)> predicate)
     {
         Node* current = &head_;
-        std::unique_lock<std::mutex> lock{head.mutex_};
+        std::unique_lock<std::mutex> lock{head_.mutex_};
         while(Node* const next {current->next_.get()})
         {
             std::unique_lock<std::mutex> next_lock{next->mutex_};
@@ -95,8 +97,9 @@ public:
             {
                 //current->next points to same address like next
                 std::unique_ptr<Node> old_next = std::move(current->next_);
-                current->next = std::move(next->next_); //rebinding
+                current->next_ = std::move(next->next_); //rebinding
                 next_lock.unlock();
+                --size_;
             }//at the end of the range old_next data will be deleted
             else //carry on browsing
             {
@@ -105,6 +108,11 @@ public:
                 lock = std::move(next_lock);
             }
         }
+    }
+
+    uint64_t size() const
+    {
+        return size_;
     }
 
     //TODO:
