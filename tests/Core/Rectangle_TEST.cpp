@@ -4,6 +4,9 @@
 //Monochromatic rectangle
 //only mechanics
 
+#define PRE_TESTS TRUE
+
+#if PRE_TESTS == FALSE
 class TestBase
 {
 protected:
@@ -305,6 +308,10 @@ class CompositeTest:
 protected:
     
 };
+
+#endif
+
+
 
 int main(int argc, char **argv)
 {

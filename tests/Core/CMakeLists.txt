@@ -4,7 +4,7 @@ set(TestLibs
      ThreadsafeQueue
      ThreadsafeList
      ThreadPool
-     ncurses
+     Rectangle
     )
 
 set(EXTRA_LIBRARIES

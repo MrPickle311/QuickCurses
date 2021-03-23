@@ -51,7 +51,10 @@ public:
     {}
     bool operator() (T const& value) const
     {
-        return origin_value_ == value;
+        #if verbose == true
+        std::cout << *origin_value_ << " " << *value << "\n";
+        #endif
+        return *origin_value_ == *value;
     } 
 }; 
 
@@ -66,9 +69,7 @@ public:
     {}
     bool operator() (std::shared_ptr<int> const& value) const
     {
-        #if verbose == true
-        std::cout << *origin_value_ << " " << *value << "\n";
-        #endif
+        
         return *origin_value_ == *value;
     } 
 }; 
@@ -155,10 +156,36 @@ TEST_F(StringTests,ForeachTest)
     {
         *(--var->end()) = ' ';
         var->append("and hello List!");
+        #if verbose == true
         std::cout << *var << '\n';
+        #endif
     },1));
     EXPECT_NO_THROW(this->multipleRemoveByValue("Hello string and hello List!",30));
     EXPECT_EQ(0,this->list_.size());
+    EXPECT_NO_THROW(this->multipleForEach(testingFunction<std::string>,1));
+    EXPECT_EQ(0,this->list_.size());
+}
+
+TEST_F(StringTests,FindFirstIfTest)
+{
+    EXPECT_NO_THROW(this->fillListByValue("Hello string!",10));
+    list_.pushFront(std::make_shared<std::string>("XD"));
+    EXPECT_NO_THROW(this->fillListByValue("Hello string!",10));
+    std::shared_ptr<std::shared_ptr<std::string>> ptr = 
+                                    list_.findFirstIf([](auto&& e)
+                                    {
+                                        if(*e == "XD")
+                                            return true;
+                                        return false;
+                                    });
+    **ptr = "NOT";
+    ptr = list_.findFirstIf([](auto&& e)
+                            {
+                                if(*e == "NOT")
+                                    return true;
+                                return false;
+                            });
+    EXPECT_EQ(**ptr,"NOT");
 }
 
 int main(int argc, char **argv)

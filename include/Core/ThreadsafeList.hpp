@@ -79,7 +79,7 @@ public:
         {
             std::unique_lock<std::mutex> next_lock{next->mutex_};
             lock.unlock();
-            if(predicate(*(next->data_)))//impl same as forEach
+            if(predicate(*next->data_))//impl same as forEach
                 return next->data_;
             current = next;
             lock = std::move(next_lock);
