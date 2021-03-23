@@ -30,7 +30,8 @@ private:
     Node head_;
 
 public:
-    ThreadsafeList()
+    ThreadsafeList():
+        size_{0}
     {}
 
     ~ThreadsafeList()
@@ -51,12 +52,12 @@ public:
         std::lock_guard<std::mutex>  lock{head_.mutex_};//lock head
         new_node->next_ = std::move(head_.next_);
         //put new_node to the top of the list
-        head_.next = std::move(new_node);//head.next points to new_node
+        head_.next_ = std::move(new_node);//head.next points to new_node
         ++size_;
     }
 
     //please , do not use deleting functions , it will destroy this list
-    void forEach(std::function<void(T)> function)
+    void forEach(std::function<void(T &)> function)
     {
         Node* current = &head_;
         std::unique_lock<std::mutex> lock{head_.mutex_};//lock head
@@ -78,7 +79,7 @@ public:
         {
             std::unique_lock<std::mutex> next_lock{next->mutex_};
             lock.unlock();
-            if(predicate(*next->data_))//impl same as forEach
+            if(predicate(*(next->data_)))//impl same as forEach
                 return next->data_;
             current = next;
             lock = std::move(next_lock);
@@ -86,7 +87,7 @@ public:
         return std::shared_ptr<T>{};
     }
 
-    void removeIf(std::function<bool(T)> predicate)
+    void removeIf(std::function<bool(T &)> predicate)
     {
         Node* current = &head_;
         std::unique_lock<std::mutex> lock{head_.mutex_};
