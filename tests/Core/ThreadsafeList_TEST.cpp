@@ -5,6 +5,8 @@
 #include <functional>
 #include <iostream>
 
+#define verbose false
+
 //Parallel execution tested by ThreadSanitizer
 //Below are only base-logic tests
 
@@ -50,6 +52,24 @@ public:
     bool operator() (T const& value) const
     {
         return origin_value_ == value;
+    } 
+}; 
+
+template<>
+class Equalizer<std::shared_ptr<int>>
+{
+private:
+    std::shared_ptr<int>  origin_value_;
+public:
+    Equalizer(std::shared_ptr<int> const& origin_value):
+        origin_value_{origin_value}
+    {}
+    bool operator() (std::shared_ptr<int> const& value) const
+    {
+        #if verbose == true
+        std::cout << *origin_value_ << " " << *value << "\n";
+        #endif
+        return *origin_value_ == *value;
     } 
 }; 
 
@@ -99,19 +119,46 @@ TYPED_TEST(ListTest,ThrowingTest)
     EXPECT_EQ(op_count,this->list_.size());    
     EXPECT_NO_THROW(this->multipleForEach(testingFunction<TypeParam>,op_count));
     EXPECT_NO_THROW(this->multipleRemoveByValue(TypeParam {},op_count));
+    EXPECT_EQ(500,this->list_.size());
+}
+
+class IntegerTests:
+    public ListTest<int>
+{
+protected:
+    using ListTest<int>::ListTest;
+};
+
+TEST_F(IntegerTests,PushingRemovingTest)
+{
+    EXPECT_NO_THROW(this->fillListByValue(2,30));
+    EXPECT_EQ(30,this->list_.size());
+    EXPECT_NO_THROW(this->multipleForEach([](std::shared_ptr<int>& var){++*var;},30));
+    EXPECT_NO_THROW(this->multipleRemoveByValue(2,30));
+    EXPECT_EQ(30,this->list_.size());
+    EXPECT_NO_THROW(this->multipleRemoveByValue(32,30));
     EXPECT_EQ(0,this->list_.size());
+    EXPECT_NO_THROW(this->multipleRemoveByValue(32,30));
 }
 
-void g(std::shared_ptr<int>& ptr)
+class StringTests:
+    public ListTest<std::string>
 {
-    *ptr = 5;
-    std::cout << *ptr << "\n";
-}
+protected:
+    using ListTest<std::string>::ListTest;
+};
 
-void f(std::function<void(std::shared_ptr<int>&)> function)
+TEST_F(StringTests,ForeachTest)
 {
-    std::shared_ptr<int> ptr{new int{6}};
-    function(ptr);
+    EXPECT_NO_THROW(this->fillListByValue("Hello string!",30));
+    EXPECT_NO_THROW(this->multipleForEach([](std::shared_ptr<std::string>& var)
+    {
+        *(--var->end()) = ' ';
+        var->append("and hello List!");
+        std::cout << *var << '\n';
+    },1));
+    EXPECT_NO_THROW(this->multipleRemoveByValue("Hello string and hello List!",30));
+    EXPECT_EQ(0,this->list_.size());
 }
 
 int main(int argc, char **argv)
