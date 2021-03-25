@@ -86,13 +86,32 @@ TEST(DimensionTests,MethodThrowingTest)
 
     EXPECT_NO_THROW(x1.replace(0));
     EXPECT_NO_THROW(x1.replace(1));
+    EXPECT_NO_THROW(w1.replace(4));
 }
 
 class DimensionGeneratorTest:
     public ::testing::Test
 {
-
+protected:
+    XCoordinateGenerator x_gen_;
+    WidthGenerator w_gen_;
+protected:
+    DimensionGeneratorTest():
+        x_gen_{XCoordinate{0},XCoordinate{10},XCoordinate{2}},
+        w_gen_{1,2,9}
+    {}
 };
+
+TEST_F(DimensionGeneratorTest,ConstructorssTests)
+{   
+    EXPECT_EQ(x_gen_.getStartValue(),XCoordinate{0});
+    EXPECT_EQ(x_gen_.getEndValue(),XCoordinate{10});
+    EXPECT_EQ(x_gen_.getStepValue(),XCoordinate{2});
+
+    EXPECT_EQ(w_gen_.getStartValue(),Width{1});
+    EXPECT_EQ(w_gen_.getEndValue(),Width{2});
+    EXPECT_EQ(w_gen_.getStepValue(),Width{9});    
+}
 
 int main(int argc, char **argv)
 {
