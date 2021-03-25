@@ -5,6 +5,7 @@ set(TestLibs
      ThreadsafeList
      ThreadPool
      Rectangle
+     Dimension
     )
 
 set(EXTRA_LIBRARIES

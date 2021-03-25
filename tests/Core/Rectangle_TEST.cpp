@@ -311,10 +311,28 @@ protected:
 
 #endif
 
+inline void wait()
+{
+    getch();
+}
 
+class PrimitiveTest:
+    public testing::Test
+{
+protected:
+    std::shared_ptr<WINDOW> screen;
+};
+
+TEST(PrimitiveTests,Test1)
+{
+    initscr();
+    wait();
+
+}
 
 int main(int argc, char **argv)
 {
+    
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
